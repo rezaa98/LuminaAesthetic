@@ -1,0 +1,10 @@
+{
+  "name": "Lumière Beauty Clinic",
+  "description": "Prototipe aplikasi web interaktif untuk Klinik Kecantikan dengan fitur AI Face Analysis.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

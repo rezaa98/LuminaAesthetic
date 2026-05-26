@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --animate-scan: scan 3s ease-in-out infinite;
+  --animate-shimmer: shimmer 3s infinite linear;
+
+  @keyframes scan {
+    0% { transform: translateY(0); opacity: 0; }
+    20% { opacity: 0.5; }
+    50% { transform: translateY(1000%); opacity: 0.8; }
+    80% { opacity: 0.5; }
+    100% { transform: translateY(2000%); opacity: 0; }
+  }
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-150%) skewX(-15deg); }
+    30% { transform: translateX(150%) skewX(-15deg); }
+    100% { transform: translateX(150%) skewX(-15deg); }
+  }
+}
