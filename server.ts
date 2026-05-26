@@ -29,7 +29,6 @@ async function startServer() {
         const isTransient = error.status === 503 || error.message?.includes('503') || error.message?.includes('UNAVAILABLE') || error.message?.includes('high demand') || error.status === 429;
         if (isTransient && attempt < retries) {
           const delay = Math.pow(2, attempt) * 1000;
-          console.warn(`Model API transient error (attempt ${attempt}/${retries}). Retrying in ${delay / 1000}s...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
           throw error;
@@ -51,7 +50,7 @@ async function startServer() {
       const mimeType = req.file.mimetype;
 
       const response = await generateContentWithRetry({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: [
           {
             text: "Analyze the skin condition and facial features of the person in this image. Provide a JSON response with:\n- skinAnalysis: hydration percentage (numeric 30 to 90), rednessLevels (Tinggi, Sedang, Rendah), notes about their condition focusing on hydration and redness\n- skinType: type (Oily, Dry, Normal, or Combination), description based on facial mapping\n- faceFeatures: shape (e.g., Oval, Round, Square), eyes (e.g., Almond, Monolid), jawline (e.g., Sharp, Soft curve)\n- spectacles: recommendedFrames (array of strings, e.g. Cat-Eye, Round)\n- hairstyles: recommendedStyles (array of strings)\nFollow the response schema exactly."
@@ -146,10 +145,10 @@ async function startServer() {
       const mimeType = mimeMatch ? mimeMatch[1] : "image/jpeg";
 
       const response = await generateContentWithRetry({
-        model: "gemini-2.5-flash",
+        model: "gemini-3.5-flash",
         contents: [
           {
-            text: "Analyze the facial features of the person in this image in extreme detail. Do not use generic labels like 'Normal' or 'Average'. Be very specific.\nDetect the following features: face shape, eyes, eyebrows, nose, cheeks, and lips.\nFor each feature, provide a brief, descriptive label (e.g., 'Soft Oval', 'Almond Eyes', 'Arched Eyebrows') and 2-3 short bullet points explaining the specific, observable characteristics of that feature in the image.\nAlso, calculate an overall 'Symmetry Score' (0-100) and provide a short 'symmetryDescription'.\nFollow the JSON schema exactly."
+            text: "Analyze the facial features of the person in this image in extreme detail. Do not use generic labels like 'Normal' or 'Average'. Be very specific.\nDetect the following features: face shape, eyes, eyebrows, nose, cheeks, and lips.\nFor each feature, provide a brief, descriptive label (e.g., 'Soft Oval', 'Almond Eyes', 'Arched Eyebrows') and 2-3 short bullet points explaining the specific, observable characteristics of that feature in the image.\nAlso, calculate an overall 'Symmetry Score' (0-100) and provide a short 'symmetryDescription'.\nAlso provide a 'faceBox' specifying a bounding box to tightly crop the face, and for each feature provide a coordinate (x, y percentages 0-100) pointing to its center on the image.\nFollow the JSON schema exactly."
           },
           {
             inlineData: {
@@ -163,6 +162,17 @@ async function startServer() {
           responseSchema: {
             type: Type.OBJECT,
             properties: {
+              faceBox: {
+                type: Type.OBJECT,
+                description: "Bounding box of the detected face, used to zoom in on the face image",
+                properties: {
+                  top: { type: Type.NUMBER, description: "Top offset percentage (0-100)" },
+                  left: { type: Type.NUMBER, description: "Left offset percentage (0-100)" },
+                  width: { type: Type.NUMBER, description: "Width percentage (0-100)" },
+                  height: { type: Type.NUMBER, description: "Height percentage (0-100)" }
+                },
+                required: ["top", "left", "width", "height"]
+              },
               symmetryScore: { type: Type.NUMBER, description: "Overall symmetry score from 0 to 100" },
               symmetryDescription: { type: Type.STRING, description: "Brief description of facial symmetry" },
               features: {
@@ -176,13 +186,22 @@ async function startServer() {
                     points: {
                       type: Type.ARRAY,
                       items: { type: Type.STRING }
+                    },
+                    coordinate: {
+                      type: Type.OBJECT,
+                      description: "The specific coordinate of this feature on the image in percentages (0-100)",
+                      properties: {
+                        x: { type: Type.NUMBER },
+                        y: { type: Type.NUMBER }
+                      },
+                      required: ["x", "y"]
                     }
                   },
-                  required: ["id", "name", "label", "points"]
+                  required: ["id", "name", "label", "points", "coordinate"]
                 }
               }
             },
-            required: ["features"]
+            required: ["faceBox", "symmetryScore", "symmetryDescription", "features"]
           }
         }
       });

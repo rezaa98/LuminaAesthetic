@@ -24,6 +24,7 @@ export function DashboardView({
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showSkinAnalysisModal, setShowSkinAnalysisModal] = useState(false);
   const [showFaceFeatureModal, setShowFaceFeatureModal] = useState(false);
+  const [detailedFaceData, setDetailedFaceData] = useState<any>(null);
   const [faceData, setFaceData] = useState<any>(null);
   const [isFaceScanning, setIsFaceScanning] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -954,7 +955,12 @@ export function DashboardView({
 
       {/* Face Feature Analysis Modal */}
       {showFaceFeatureModal && (
-         <FaceFeatureModal imageSrc={imageSrc || null} onClose={() => setShowFaceFeatureModal(false)} />
+         <FaceFeatureModal 
+            imageSrc={imageSrc || null} 
+            onClose={() => setShowFaceFeatureModal(false)}
+            cachedData={detailedFaceData}
+            onDataFecthed={(data) => setDetailedFaceData(data)}
+         />
       )}
 
       {/* Hidden PDF Report Template */}

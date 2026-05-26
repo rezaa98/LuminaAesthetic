@@ -5,6 +5,8 @@ import { useState, useEffect } from 'react';
 interface FaceFeatureModalProps {
   imageSrc: string | null;
   onClose: () => void;
+  cachedData?: any;
+  onDataFecthed?: (data: any) => void;
 }
 
 interface DetailedFeature {
@@ -12,17 +14,28 @@ interface DetailedFeature {
   name: string;
   label: string;
   points: string[];
+  coordinate?: { x: number; y: number };
 }
 
-export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) => {
+export const FaceFeatureModal = ({ imageSrc, onClose, cachedData, onDataFecthed }: FaceFeatureModalProps) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [features, setFeatures] = useState<DetailedFeature[]>([]);
   const [symmetryScore, setSymmetryScore] = useState<number | null>(null);
   const [symmetryDescription, setSymmetryDescription] = useState<string | null>(null);
+  const [faceBox, setFaceBox] = useState<{top: number, left: number, width: number, height: number} | null>(null);
 
   useEffect(() => {
     if (!imageSrc) return;
+    
+    if (cachedData) {
+        setFeatures(cachedData.features || []);
+        if (cachedData.symmetryScore !== undefined) setSymmetryScore(cachedData.symmetryScore);
+        if (cachedData.symmetryDescription) setSymmetryDescription(cachedData.symmetryDescription);
+        if (cachedData.faceBox) setFaceBox(cachedData.faceBox);
+        setLoading(false);
+        return;
+    }
 
     let isMounted = true;
 
@@ -58,6 +71,8 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
           setFeatures(data.features || []);
           if (data.symmetryScore !== undefined) setSymmetryScore(data.symmetryScore);
           if (data.symmetryDescription) setSymmetryDescription(data.symmetryDescription);
+          if (data.faceBox) setFaceBox(data.faceBox);
+          if (onDataFecthed) onDataFecthed(data);
         }
       } catch (err: any) {
         if (isMounted) {
@@ -75,7 +90,7 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
     return () => {
       isMounted = false;
     };
-  }, [imageSrc]);
+  }, [imageSrc, cachedData, onDataFecthed]);
 
   const getIconForFeature = (id: string, className: string = "w-4 h-4") => {
     switch (id) {
@@ -141,9 +156,9 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto relative w-full h-full flex items-center justify-center p-6">
+        <div className="flex-1 overflow-y-auto relative w-full flex items-start justify-center p-6 py-10">
           {loading ? (
-            <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="flex flex-col items-center justify-center space-y-4 h-full">
               <div className="relative">
                  <div className="w-16 h-16 border-4 border-pink-100 rounded-full"></div>
                  <div className="absolute top-0 left-0 w-16 h-16 border-4 border-pink-500 rounded-full border-t-transparent animate-spin"></div>
@@ -152,7 +167,7 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
               <p className="text-sm font-bold text-slate-600 animate-pulse tracking-wide">ANALYZING FACIAL MAP...</p>
             </div>
           ) : error ? (
-            <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-red-100 max-w-md">
+            <div className="text-center p-8 bg-white rounded-xl shadow-sm border border-red-100 max-w-md my-auto">
               <div className="w-12 h-12 rounded-full bg-red-100 text-red-500 flex items-center justify-center mx-auto mb-4">
                 <X className="w-6 h-6" />
               </div>
@@ -160,34 +175,75 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
               <p className="text-sm text-slate-600">{error}</p>
             </div>
           ) : (
-            <div className="w-full h-full max-w-5xl mx-auto relative flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16">
+            <div className="w-full max-w-5xl mx-auto relative flex flex-col md:flex-row items-center md:items-start justify-center gap-8 md:gap-16">
               
               {/* Left Column Data */}
               <div className="flex flex-col gap-6 w-full md:w-1/3 order-2 md:order-1 items-end relative z-10">
                 {features.filter((f, i) => i % 2 === 0).map(f => (
                    <div key={f.id} className="relative w-full flex justify-end">
                       {renderFeatureCard(f, true)}
-                      {/* Connection Line Desktop Only */}
-                      <div className="hidden md:block absolute top-1/2 -right-16 w-16 h-[1px] bg-pink-500/30"></div>
                    </div>
                 ))}
               </div>
 
               {/* Center Portrait & Symmetry */}
-              <div className="flex flex-col items-center w-2/3 md:w-1/3 order-1 md:order-2 shrink-0 z-20 gap-4">
-                <div className="relative aspect-[3/4] max-w-sm w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-200">
+              <div className="flex flex-col items-center w-2/3 md:w-1/3 order-1 md:order-2 shrink-0 z-20 gap-4 sticky top-0">
+                <div className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-200">
                   {imageSrc && (
-                    <>
-                      <img src={imageSrc} alt="Portrait" className="w-full h-full object-cover" />
+                    <div 
+                       className="relative w-full h-auto transition-transform duration-1000 ease-[cubic-bezier(0.23,1,0.32,1)]"
+                       style={{
+                          transformOrigin: faceBox ? `${faceBox.left + faceBox.width / 2}% ${faceBox.top + faceBox.height / 2}%` : '50% 50%',
+                          transform: faceBox ? `scale(${Math.min(100 / faceBox.width, 100 / faceBox.height) * 0.6})` : 'scale(1)'
+                       }}
+                    >
+                      <img src={imageSrc} alt="Portrait" className="w-full h-auto block" />
+                      
+                      {/* Connection Lines (SVG) */}
+                      <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                        {features.map((f, i) => {
+                           if (!f.coordinate) return null;
+                           const isLeft = i % 2 === 0;
+                           const x = f.coordinate.x;
+                           const y = f.coordinate.y;
+                           return (
+                              <line 
+                                 key={`line-${f.id}`}
+                                 x1={`${x}%`} 
+                                 y1={`${y}%`} 
+                                 x2={isLeft ? "-50%" : "150%"} 
+                                 y2={`${y}%`} 
+                                 stroke="rgba(236,72,153,0.5)" 
+                                 strokeWidth="0.5"
+                                 strokeDasharray="1,1"
+                              />
+                           );
+                        })}
+                      </svg>
+
+                       {/* Feature Dots */}
+                       {features.map((f) => f.coordinate && (
+                          <div 
+                             key={`point-${f.id}`}
+                             className="absolute flex items-center justify-center pointer-events-none"
+                             style={{ 
+                                 top: `${f.coordinate.y}%`, 
+                                 left: `${f.coordinate.x}%`, 
+                                 transform: 'translate(-50%, -50%)',
+                             }}
+                          >
+                             <div className="w-[3px] h-[3px] rounded-full bg-pink-500 ring-[1px] ring-white shadow-[0_0_4px_rgba(236,72,153,1)]" />
+                          </div>
+                       ))}
                       
                       {/* Scanner Effect */}
                       <div className="absolute inset-0 pointer-events-none overflow-hidden">
                         <div className="w-full h-full relative">
-                          <div className="absolute top-0 left-0 right-0 h-[2px] bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,1)] animate-[scan_3s_ease-in-out_infinite]"></div>
-                          <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay"></div>
+                          <div className="absolute top-0 left-0 right-0 h-[1px] bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,1)] animate-[scan_3s_ease-in-out_infinite]"></div>
+                          <div className="absolute inset-0 bg-blue-500/5 mix-blend-overlay"></div>
                         </div>
                       </div>
-                    </>
+                    </div>
                   )}
                 </div>
 
@@ -214,8 +270,6 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
               <div className="flex flex-col gap-6 w-full md:w-1/3 order-3 md:order-3 items-start relative z-10">
                 {features.filter((f, i) => i % 2 !== 0).map(f => (
                    <div key={f.id} className="relative w-full flex justify-start">
-                      {/* Connection Line Desktop Only */}
-                      <div className="hidden md:block absolute top-1/2 -left-16 w-16 h-[1px] bg-pink-500/30"></div>
                       {renderFeatureCard(f, false)}
                    </div>
                 ))}

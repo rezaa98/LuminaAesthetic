@@ -8,6 +8,30 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.3.0",
+      date: "26 May 2026",
+      changes: [
+        "Menambahkan caching data hasil analisis AI agar tidak memanggil server berkali-kali untuk gambar yang sama.",
+        "Menambahkan fitur Zoom In otomatis ke area wajah pada geometri analisis.",
+        "Menambahkan titik penanda (coordinate dots) serta garis penghubung presisi ke setiap fitur wajah melalui deteksi AI."
+      ],
+    },
+    {
+      version: "v2.2.2",
+      date: "26 May 2026",
+      changes: [
+        "Memperbaiki isu layout (halaman terpotong saat scroll) pada modal Detailed Face Geometry Analysis.",
+        "Menghilangkan garis penghubung elemen agar tampilan lebih ringkas dan tidak ambigu."
+      ],
+    },
+    {
+      version: "v2.2.1",
+      date: "26 May 2026",
+      changes: [
+        "Memperbaiki pesan error transient API model dan memperbarui model yang digunakan ke versi terbaru (gemini-3.5-flash) untuk mengurangi kejadian 503."
+      ],
+    },
+    {
       version: "v2.2.0",
       date: "26 May 2026",
       changes: [
