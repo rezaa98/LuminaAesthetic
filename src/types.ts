@@ -1,4 +1,11 @@
-export type AppState = 'upload' | 'analyzing' | 'results';
+export type AppState = 'upload' | 'analyzing' | 'results' | 'history';
+
+export interface HistoryItem {
+  id: string;
+  timestamp: Date;
+  imageUrl: string | null;
+  analysisData: AnalysisResult;
+}
 
 export interface AnalysisResult {
   skinAnalysis: {

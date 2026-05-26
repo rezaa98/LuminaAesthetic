@@ -1,35 +1,93 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowRight } from 'lucide-react';
+import { Sparkles, ArrowRight, Loader } from 'lucide-react';
 import { motion } from 'motion/react';
-import { AppState, AnalysisResult } from './types';
+import * as faceapi from '@vladmandic/face-api';
+import { AppState, AnalysisResult, HistoryItem } from './types';
+import localforage from 'localforage';
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
+};
 import { UploadView } from './components/UploadView';
 import { AnalysisLoading } from './components/AnalysisLoading';
 import { DashboardView } from './components/DashboardView';
+import { HistoryView } from './components/HistoryView';
+import { ChangelogModal } from './components/ChangelogModal';
 import { processImageWithAI } from './mockData';
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>('upload');
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [uploadedImageURL, setUploadedImageURL] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const [showChangelog, setShowChangelog] = useState<boolean>(false);
+
+  useEffect(() => {
+    localforage.getItem<HistoryItem[]>('lumina-history').then(data => {
+      if (data) {
+        setHistory(data);
+      }
+    });
+  }, []);
+
   const [arModeActive, setArModeActive] = useState<boolean>(false);
   const [frameColor, setFrameColor] = useState({ hex: '#0f172a', name: 'Midnight' });
   const arVideoRef = useRef<HTMLVideoElement>(null);
+  const arContainerRef = useRef<HTMLDivElement>(null);
   const [arStream, setArStream] = useState<MediaStream | null>(null);
+  
+  // AR Face Tracking States
+  const [arModelsLoaded, setArModelsLoaded] = useState<boolean>(false);
+  const [arStatus, setArStatus] = useState<string>('MENUNGGU MODEL...');
+  const [faceData, setFaceData] = useState<{ x: number, y: number, width: number, angle: number } | null>(null);
+  const reqRef = useRef<number>();
+
+  useEffect(() => {
+    let active = true;
+    const loadModels = async () => {
+      try {
+        setArStatus('MENGUNDUH MODEL AI (5MB)...');
+        // Use tinyFaceDetector for better performance
+        await faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/');
+        await faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/');
+        if (active) {
+          setArModelsLoaded(true);
+          setArStatus('MENCARI WAJAH...');
+        }
+      } catch (err) {
+        console.error("Failed to load face-api models", err);
+        if (active) setArStatus('GAGAL MEMUAT MODEL');
+      }
+    };
+    
+    if (arModeActive && !arModelsLoaded) {
+      loadModels();
+    }
+    return () => { active = false; };
+  }, [arModeActive, arModelsLoaded]);
 
   useEffect(() => {
     if (arModeActive) {
-      navigator.mediaDevices.getUserMedia({ video: true })
+      navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
         .then(stream => {
           setArStream(stream);
         })
         .catch(err => {
           console.error("Camera access denied:", err);
+          setArStatus('AKSES KAMERA DITOLAK');
         });
     } else {
       if (arStream) {
         arStream.getTracks().forEach(track => track.stop());
         setArStream(null);
       }
+      setFaceData(null);
+      if (reqRef.current) cancelAnimationFrame(reqRef.current);
     }
   }, [arModeActive]);
 
@@ -39,6 +97,103 @@ export default function App() {
     }
   }, [arStream, arModeActive]);
 
+  const detectFace = async () => {
+    if (!arVideoRef.current || !arContainerRef.current || !arModeActive) return;
+    
+    const videoEl = arVideoRef.current;
+    if (videoEl.readyState >= 2 && !videoEl.paused) {
+      const detections = await faceapi.detectSingleFace(videoEl, new faceapi.TinyFaceDetectorOptions({ inputSize: 224 })).withFaceLandmarks();
+      
+      if (detections) {
+        setArStatus('FACE MESH DETECTED');
+        const leftEye = detections.landmarks.getLeftEye();
+        const rightEye = detections.landmarks.getRightEye();
+        
+        const leftEyeCenter = leftEye.reduce((acc, curr) => ({ x: acc.x + curr.x, y: acc.y + curr.y }), { x: 0, y: 0 });
+        leftEyeCenter.x /= leftEye.length;
+        leftEyeCenter.y /= leftEye.length;
+        
+        const rightEyeCenter = rightEye.reduce((acc, curr) => ({ x: acc.x + curr.x, y: acc.y + curr.y }), { x: 0, y: 0 });
+        rightEyeCenter.x /= rightEye.length;
+        rightEyeCenter.y /= rightEye.length;
+        
+        // Ensure we know which eye is on the left side of the raw image
+        let leftSideEye, rightSideEye;
+        if (leftEyeCenter.x < rightEyeCenter.x) {
+          leftSideEye = leftEyeCenter;
+          rightSideEye = rightEyeCenter;
+        } else {
+          leftSideEye = rightEyeCenter;
+          rightSideEye = leftEyeCenter;
+        }
+        
+        const dx = rightSideEye.x - leftSideEye.x;
+        const dy = rightSideEye.y - leftSideEye.y;
+        
+        const distance = Math.hypot(dx, dy); // distance between eyes
+        
+        // Since we mirror the X axis for rendering, the rotation direction is inverted.
+        // dx is always positive here, so Math.atan2(dy, dx) is between -90 and 90 degrees.
+        const angle = -Math.atan2(dy, dx) * (180 / Math.PI);
+        
+        const eyeCenterX = (leftSideEye.x + rightSideEye.x) / 2;
+        const eyeCenterY = (leftSideEye.y + rightSideEye.y) / 2;
+        
+        // Map to container
+        const vidW = videoEl.videoWidth;
+        const vidH = videoEl.videoHeight;
+        const contW = arContainerRef.current.clientWidth;
+        const contH = arContainerRef.current.clientHeight;
+        
+        const vidRatio = vidW / vidH;
+        const contRatio = contW / contH;
+        let renderW = contW;
+        let renderH = contH;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        if (contRatio > vidRatio) {
+          renderH = contW / vidRatio;
+          offsetY = (renderH - contH) / 2;
+        } else {
+          renderW = contH * vidRatio;
+          offsetX = (renderW - contW) / 2;
+        }
+        
+        const xRaw = (eyeCenterX / vidW) * renderW - offsetX;
+        const yMapped = (eyeCenterY / vidH) * renderH - offsetY;
+        
+        // Mirror X
+        const xMapped = contW - xRaw;
+        
+        // Scale glasses width based on eye distance. Usually glasses are ~2.2x the distance between pupils
+        const mappedEyeDist = (distance / vidW) * renderW;
+        const glassesWidth = mappedEyeDist * 2.5;
+
+        setFaceData({
+          x: xMapped,
+          y: yMapped,
+          width: glassesWidth,
+          angle: angle
+        });
+      } else {
+        setArStatus('MENCARI WAJAH...');
+        // Smoothly fade out or keep old position? Better to reset or keep for a bit.
+        // For simplicity, we just set null, or keep it. Let's set null so it hides or uses default.
+      }
+    }
+    reqRef.current = requestAnimationFrame(detectFace);
+  };
+
+  useEffect(() => {
+    if (arModeActive && arModelsLoaded && arStream) {
+       reqRef.current = requestAnimationFrame(detectFace);
+    }
+    return () => {
+      if (reqRef.current) cancelAnimationFrame(reqRef.current);
+    }
+  }, [arModeActive, arModelsLoaded, arStream]);
+
   const handleUpload = async (file: File | null) => {
     setAppState('analyzing');
     setArModeActive(false);
@@ -46,27 +201,62 @@ export default function App() {
       setUploadedImageURL(URL.createObjectURL(file));
     }
     
-    // Panggil fungsi mock AI prosesor
-    const result = await processImageWithAI(file);
-    
-    // Simpan hasil dan transisi ke dashboard
-    setAnalysisData(result);
-    setAppState('results');
+    try {
+      // Panggil fungsi AI prosesor sungguhan
+      const result = await processImageWithAI(file);
+      
+      let base64Image = null;
+      if (file) {
+        base64Image = await fileToBase64(file);
+      } else if (uploadedImageURL) {
+        base64Image = uploadedImageURL;
+      }
+
+      // Simpan hasil dan transisi ke dashboard
+      setAnalysisData(result);
+      
+      const newHistoryItem: HistoryItem = {
+        id: Date.now().toString(),
+        timestamp: new Date(),
+        imageUrl: base64Image,
+        analysisData: result,
+      };
+      
+      setHistory(prev => {
+        const next = [newHistoryItem, ...prev];
+        localforage.setItem('lumina-history', next);
+        return next;
+      });
+      
+      setAppState('results');
+    } catch (e: any) {
+      console.error(e);
+      alert('Gagal memproses gambar dengan AI: ' + e.message);
+      handleReset();
+    }
   };
 
   const handleReset = () => {
     setAppState('upload');
     setAnalysisData(null);
     setArModeActive(false);
-    if (uploadedImageURL) {
-      URL.revokeObjectURL(uploadedImageURL);
-      setUploadedImageURL(null);
-    }
+    // DO NOT revokeObjectURL here anymore because history needs it!
+    setUploadedImageURL(null);
+  };
+  
+  const handleViewHistory = () => {
+    setAppState('history');
+  };
+  
+  const handleSelectHistoryItem = (item: HistoryItem) => {
+    setAnalysisData(item.analysisData);
+    setUploadedImageURL(item.imageUrl);
+    setAppState('results');
   };
 
   return (
-    <div className="h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans overflow-hidden text-slate-800">
-      <div className="h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col overflow-hidden border border-slate-200 shadow-xl">
+    <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
+      <div className="min-h-[100dvh] md:h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl">
         
         {/* Header */}
         <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0">
@@ -78,18 +268,28 @@ export default function App() {
               Lumina<span className="text-pink-500 underline decoration-2">Aesthetic</span>
             </span>
           </div>
-          <nav className="hidden md:flex gap-6 text-sm font-medium text-slate-500">
-            <span className="text-pink-600">AI Analysis</span>
-            <span>Appointments</span>
-            <span>History</span>
+          <nav className="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-slate-500">
+            <button onClick={handleReset} className={`hover:text-slate-800 transition-colors ${appState !== 'history' ? 'text-pink-600 font-bold' : ''}`}>Analysis</button>
+            <button className="hidden md:block hover:text-slate-800 transition-colors cursor-not-allowed opacity-50">Appointments</button>
+            <button onClick={handleViewHistory} className={`hover:text-slate-800 transition-colors ${appState === 'history' ? 'text-pink-600 font-bold' : ''}`}>History</button>
           </nav>
         </header>
 
         {/* Main Content Area */}
-        <main className="flex-1 flex flex-col md:flex-row overflow-hidden p-4 md:p-6 gap-4 md:gap-6 bg-slate-50">
+        <main className="flex-1 flex flex-col md:flex-row md:overflow-hidden p-4 md:p-6 gap-4 md:gap-6 bg-slate-50 relative">
           
-          {/* Sidebar: Input Section */}
-          <section className="w-full md:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col shrink-0 overflow-y-auto">
+          {appState === 'history' ? (
+            <div className="w-full h-full absolute inset-0 md:static z-40 p-4 md:p-0 bg-slate-50 md:bg-transparent">
+               <HistoryView 
+                 history={history} 
+                 onSelect={handleSelectHistoryItem} 
+                 onBack={() => setAppState('upload')} 
+               />
+            </div>
+          ) : (
+            <>
+              {/* Sidebar: Input Section */}
+              <section className="w-full md:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col shrink-0 md:overflow-y-auto">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900 shrink-0">
               <Sparkles className="w-5 h-5 text-pink-500" />
               Input Wajah
@@ -101,7 +301,7 @@ export default function App() {
               {appState === 'results' && (
                 <div className="flex flex-col h-full relative">
                   {uploadedImageURL ? (
-                    <div className="relative w-full flex-1 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center mb-4">
+                    <div ref={arContainerRef} className="relative w-full flex-1 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center mb-4 min-h-[300px] md:min-h-0">
                       {arModeActive && arStream && (
                         <video 
                           ref={arVideoRef} 
@@ -119,8 +319,17 @@ export default function App() {
                           {/* AR Tracking Tech UI */}
                           <div className="absolute top-4 left-4 right-4 flex justify-between items-center text-[10px] text-pink-500 font-mono font-bold tracking-widest z-30 drop-shadow-md">
                             <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(236,72,153,0.8)]"></div>
-                              FACE MESH DETECTED
+                              {arModelsLoaded ? (
+                                <>
+                                  <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(236,72,153,0.8)]"></div>
+                                  {arStatus}
+                                </>
+                              ) : (
+                                <>
+                                  <Loader className="w-3 h-3 animate-spin text-pink-500" />
+                                  {arStatus}
+                                </>
+                              )}
                             </div>
                             <span className="hidden sm:inline-block border border-pink-500/30 px-2 py-0.5 rounded bg-pink-500/10 backdrop-blur-md">AR.TRACKING.ACTIVE</span>
                           </div>
@@ -140,16 +349,18 @@ export default function App() {
 
                           {/* Virtual Glasses */}
                           <motion.div 
-                            initial={{ y: -50, opacity: 0, scale: 0.9 }}
-                            animate={{ y: 0, opacity: 1, scale: 1 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.1 }}
-                            className="absolute top-[38%] left-[50%] -translate-x-1/2 -translate-y-1/2 w-[60%] z-30 pointer-events-none"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: faceData ? 1 : 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="absolute top-0 left-0 z-30 pointer-events-none origin-center"
+                            style={{
+                              transform: faceData 
+                                ? `translate(${faceData.x}px, ${faceData.y}px) translate(-50%, -50%) rotate(${faceData.angle}deg)`
+                                : 'translate(50%, 50%)',
+                              width: faceData ? `${faceData.width}px` : '60%'
+                            }}
                           >
-                            <motion.div 
-                              animate={{ y: [-1, 2, -1], rotateZ: [-0.5, 0.5, -0.5] }}
-                              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                              className="relative w-full aspect-[2.6/1] flex items-center justify-between"
-                            >
+                            <div className="relative w-full aspect-[2.6/1] flex items-center justify-between">
                                 {/* Bridge */}
                                 <div 
                                   className="absolute top-[35%] left-1/2 -translate-x-1/2 -translate-y-1/2 w-[12%] h-[4px] rounded-full shadow-lg transition-colors duration-300"
@@ -158,7 +369,7 @@ export default function App() {
                                 
                                 {/* Left Lens (Cat Eye) */}
                                 <div 
-                                  className="relative w-[46%] h-[90%] border-[5px] backdrop-blur-[2px] bg-sky-200/20 shadow-xl flex items-center justify-center overflow-hidden transition-colors duration-300"
+                                  className="relative w-[46%] h-[90%] border-[4px] backdrop-blur-[2px] bg-sky-200/20 shadow-xl flex items-center justify-center overflow-hidden transition-colors duration-300"
                                   style={{ 
                                     borderRadius: "30% 70% 50% 60% / 30% 60% 50% 50%",
                                     borderColor: frameColor.hex
@@ -169,7 +380,7 @@ export default function App() {
                                 
                                 {/* Right Lens (Cat Eye) */}
                                 <div 
-                                  className="relative w-[46%] h-[90%] border-[5px] backdrop-blur-[2px] bg-sky-200/20 shadow-xl flex items-center justify-center overflow-hidden transition-colors duration-300"
+                                  className="relative w-[46%] h-[90%] border-[4px] backdrop-blur-[2px] bg-sky-200/20 shadow-xl flex items-center justify-center overflow-hidden transition-colors duration-300"
                                   style={{ 
                                     borderRadius: "70% 30% 60% 50% / 60% 30% 50% 50%",
                                     borderColor: frameColor.hex
@@ -177,18 +388,13 @@ export default function App() {
                                 >
                                   <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/50 to-white/0 -translate-x-[150%] animate-shimmer" style={{ animationDelay: '0.2s' }}></div>
                                 </div>
-                            </motion.div>
+                            </div>
                             
-                            <motion.div 
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ delay: 0.6 }}
-                              className="absolute -bottom-10 w-full text-center"
-                            >
-                              <span className="text-[10px] font-mono tracking-wider bg-black/70 backdrop-blur-sm text-white px-3 py-1 rounded shadow-lg border border-white/20">
+                            <div className="absolute -bottom-8 w-full text-center">
+                              <span className="text-[8px] font-mono tracking-wider bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded shadow-lg border border-white/20 whitespace-nowrap">
                                 {frameColor.name.toUpperCase()} (CAT-EYE)
                               </span>
-                            </motion.div>
+                            </div>
                           </motion.div>
 
                           {/* AR Controls UI */}
@@ -270,7 +476,7 @@ export default function App() {
           </section>
           
           {/* Main Content: Dashboard Results */}
-          <section className="flex-1 overflow-hidden flex flex-col">
+          <section className="flex-1 md:overflow-hidden flex flex-col">
             {appState !== 'results' ? (
               <div id="dashboard-empty" className="flex-1 flex flex-col items-center justify-center bg-white border border-slate-100 rounded-2xl text-slate-400 opacity-60 p-8 text-center shadow-sm">
                 <Sparkles className="w-16 h-16 mb-4 opacity-50" />
@@ -278,9 +484,11 @@ export default function App() {
                 <p className="text-sm mt-1">Unggah foto untuk memulai diagnosis AI</p>
               </div>
             ) : (
-              analysisData && <DashboardView data={analysisData} onReset={handleReset} onTryOnAR={() => setArModeActive(true)} />
+              analysisData && <DashboardView data={analysisData} onReset={handleReset} onTryOnAR={() => setArModeActive(true)} imageSrc={uploadedImageURL} />
             )}
           </section>
+          </>
+          )}
 
         </main>
 
@@ -298,10 +506,22 @@ export default function App() {
               <span className="text-[11px] text-slate-500 font-medium tracking-tight">v2.4 Engine Active</span>
             </div>
           </div>
-          <p className="text-[10px] text-slate-400 font-mono tracking-wider">SCAN_ID: LX-890122-AI</p>
+          <div className="flex items-center gap-4">
+            <p className="text-[10px] text-slate-400 font-mono tracking-wider">SCAN_ID: LX-890122-AI</p>
+            <button 
+              onClick={() => setShowChangelog(true)} 
+              className="text-[10px] text-pink-500 hover:text-pink-600 font-mono tracking-wider font-bold underline decoration-pink-500/30 underline-offset-2 transition-colors cursor-pointer"
+            >
+              v2.1.3 Updates
+            </button>
+          </div>
         </footer>
 
       </div>
+      
+      {showChangelog && (
+        <ChangelogModal onClose={() => setShowChangelog(false)} />
+      )}
     </div>
   );
 }

@@ -1,34 +1,24 @@
 import { AnalysisResult } from './types';
 
-// Mock function to simulate AI processing logic.
-// In a real application, this would send the image to a backend service.
+// Process image using real Gemini API
 export const processImageWithAI = async (imageFile: File | null): Promise<AnalysisResult> => {
-  return new Promise((resolve) => {
-    // Simulasi delay proses AI (2.5 detik)
-    setTimeout(() => {
-      // Mengembalikan data mock / hardcoded
-      resolve({
-        skinAnalysis: {
-          hydration: 40,
-          rednessLevels: "Sedang",
-          notes: "Tingkat hidrasi 40%, ada indikasi kemerahan di area T-Zone. Disarankan memperbanyak asupan air dan menggunakan moisturizer berbahan dasar ceramide."
-        },
-        skinType: {
-          type: "Oily",
-          description: "Cenderung berminyak di area dahi, hidung, dan dagu."
-        },
-        faceFeatures: {
-          shape: "Oval",
-          eyes: "Almond",
-          jawline: "Lembut melengkung"
-        },
-        spectacles: {
-          recommendedFrames: ["Cat-Eye", "Round (Bulat)"]
-        },
-        hairstyles: {
-          recommendedStyles: ["Layered Bob", "Curtain Bangs dengan rambut panjang"]
-        }
-      });
-    }, 2500);
+  if (!imageFile) {
+    throw new Error("No image file provided");
+  }
+
+  const formData = new FormData();
+  formData.append("image", imageFile);
+
+  const response = await fetch("/api/analyze", {
+    method: "POST",
+    body: formData,
   });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    throw new Error(errorData.error || `Failed to analyze image: ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data as AnalysisResult;
 };
