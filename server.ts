@@ -149,7 +149,7 @@ async function startServer() {
         model: "gemini-2.5-flash",
         contents: [
           {
-            text: "Analyze the facial features of the person in this image in extreme detail. Do not use generic labels like 'Normal' or 'Average'. Be very specific.\nDetect the following features: face shape, eyes, eyebrows, nose, cheeks, and lips.\nFor each feature, provide a brief, descriptive label (e.g., 'Soft Oval', 'Almond Eyes', 'Arched Eyebrows') and 2-3 short bullet points explaining the specific, observable characteristics of that feature in the image.\nFollow the JSON schema exactly."
+            text: "Analyze the facial features of the person in this image in extreme detail. Do not use generic labels like 'Normal' or 'Average'. Be very specific.\nDetect the following features: face shape, eyes, eyebrows, nose, cheeks, and lips.\nFor each feature, provide a brief, descriptive label (e.g., 'Soft Oval', 'Almond Eyes', 'Arched Eyebrows') and 2-3 short bullet points explaining the specific, observable characteristics of that feature in the image.\nAlso, calculate an overall 'Symmetry Score' (0-100) and provide a short 'symmetryDescription'.\nFollow the JSON schema exactly."
           },
           {
             inlineData: {
@@ -163,6 +163,8 @@ async function startServer() {
           responseSchema: {
             type: Type.OBJECT,
             properties: {
+              symmetryScore: { type: Type.NUMBER, description: "Overall symmetry score from 0 to 100" },
+              symmetryDescription: { type: Type.STRING, description: "Brief description of facial symmetry" },
               features: {
                 type: Type.ARRAY,
                 items: {

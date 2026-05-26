@@ -18,6 +18,8 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [features, setFeatures] = useState<DetailedFeature[]>([]);
+  const [symmetryScore, setSymmetryScore] = useState<number | null>(null);
+  const [symmetryDescription, setSymmetryDescription] = useState<string | null>(null);
 
   useEffect(() => {
     if (!imageSrc) return;
@@ -54,6 +56,8 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
         const data = await res.json();
         if (isMounted) {
           setFeatures(data.features || []);
+          if (data.symmetryScore !== undefined) setSymmetryScore(data.symmetryScore);
+          if (data.symmetryDescription) setSymmetryDescription(data.symmetryDescription);
         }
       } catch (err: any) {
         if (isMounted) {
@@ -169,20 +173,40 @@ export const FaceFeatureModal = ({ imageSrc, onClose }: FaceFeatureModalProps) =
                 ))}
               </div>
 
-              {/* Center Portrait */}
-              <div className="relative w-2/3 md:w-1/3 aspect-[3/4] max-w-sm rounded-3xl overflow-hidden shadow-2xl order-1 md:order-2 shrink-0 border-4 border-white bg-slate-200 z-20">
-                {imageSrc && (
-                  <>
-                    <img src={imageSrc} alt="Portrait" className="w-full h-full object-cover" />
-                    
-                    {/* Scanner Effect */}
-                    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                      <div className="w-full h-full relative">
-                        <div className="absolute top-0 left-0 right-0 h-[2px] bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,1)] animate-[scan_3s_ease-in-out_infinite]"></div>
-                        <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay"></div>
+              {/* Center Portrait & Symmetry */}
+              <div className="flex flex-col items-center w-2/3 md:w-1/3 order-1 md:order-2 shrink-0 z-20 gap-4">
+                <div className="relative aspect-[3/4] max-w-sm w-full rounded-3xl overflow-hidden shadow-2xl border-4 border-white bg-slate-200">
+                  {imageSrc && (
+                    <>
+                      <img src={imageSrc} alt="Portrait" className="w-full h-full object-cover" />
+                      
+                      {/* Scanner Effect */}
+                      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                        <div className="w-full h-full relative">
+                          <div className="absolute top-0 left-0 right-0 h-[2px] bg-pink-500 shadow-[0_0_15px_rgba(236,72,153,1)] animate-[scan_3s_ease-in-out_infinite]"></div>
+                          <div className="absolute inset-0 bg-blue-500/10 mix-blend-overlay"></div>
+                        </div>
                       </div>
+                    </>
+                  )}
+                </div>
+
+                {symmetryScore !== null && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-white rounded-2xl w-full p-4 shadow-sm border border-slate-100 flex flex-col items-center text-center mt-2 relative overflow-hidden"
+                  >
+                    <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-pink-400 to-rose-600 transition-all duration-1000" style={{ width: `${symmetryScore}%` }}></div>
+                    <span className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-1 mb-1">Symmetry Score</span>
+                    <div className="flex items-end justify-center gap-1 mb-1">
+                      <span className="text-3xl font-black text-slate-800 leading-none">{symmetryScore}</span>
+                      <span className="text-sm font-bold text-slate-400 mb-1">/100</span>
                     </div>
-                  </>
+                    {symmetryDescription && (
+                      <p className="text-xs font-semibold text-slate-500 mt-1 pb-1">{symmetryDescription}</p>
+                    )}
+                  </motion.div>
                 )}
               </div>
 

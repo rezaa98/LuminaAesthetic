@@ -512,7 +512,7 @@ export default function App() {
               onClick={() => setShowChangelog(true)} 
               className="text-[10px] text-pink-500 hover:text-pink-600 font-mono tracking-wider font-bold underline decoration-pink-500/30 underline-offset-2 transition-colors cursor-pointer"
             >
-              v2.1.3 Updates
+              v2.2.0 Updates
             </button>
           </div>
         </footer>

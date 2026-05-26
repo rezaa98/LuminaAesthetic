@@ -8,6 +8,13 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.2.0",
+      date: "26 May 2026",
+      changes: [
+        "Menambahkan skor simetri wajah (Symmetry Score 0-100) dan penjelasan tingkat simetri pada modul analisis geometri wajah."
+      ],
+    },
+    {
       version: "v2.1.3",
       date: "26 May 2026",
       changes: [
