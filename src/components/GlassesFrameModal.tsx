@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import * as faceapi from "@vladmandic/face-api";
 import { 
   X, 
   ScanFace, 
@@ -168,7 +169,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
   const { lang, language } = useLanguage();
   const [activeTab, setActiveTab] = useState<'poster' | 'classic'>('poster');
 
-  // Find the exact eye coordinate from AI features analysis to avoid hardcoding!
+  // Find standard fallback eye coordinates from AI features analysis
   const getEyeCoordinates = () => {
     if (!detailedFaceData || !detailedFaceData.features) {
       return { x: 50, y: 38 }; // fallback if not loaded
@@ -178,7 +179,6 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
       return { x: 50, y: 38 };
     }
     
-    // Check scale factor (is it 0-1000 or 0-100? Let's check max value)
     let maxVal = 0;
     detailedFaceData.features.forEach((f: any) => {
       if (f.coordinate) {
@@ -201,7 +201,6 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
       return { x: 50, y: 44 };
     }
     
-    // Check scale factor
     let maxVal = 0;
     detailedFaceData.features.forEach((f: any) => {
       if (f.coordinate) {
@@ -215,16 +214,111 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
     return { x, y };
   };
 
-  const eyeCoords = getEyeCoordinates();
-  const noseCoords = getNoseCoordinates();
-  
+  const fallbackEyeCoords = getEyeCoordinates();
+  const fallbackNoseCoords = getNoseCoordinates();
+
+  // Face-API Engine States for Precise Target Fitting
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [actualLandmarks, setActualLandmarks] = useState<{x: number, y: number}[] | null>(null);
+  const [detectedEyeCoords, setDetectedEyeCoords] = useState<{ x: number, y: number } | null>(null);
+  const [detectedNoseCoords, setDetectedNoseCoords] = useState<{ x: number, y: number } | null>(null);
+  const [detectedEyeDistance, setDetectedEyeDistance] = useState<number | null>(null);
+  const [detectedTilt, setDetectedTilt] = useState<number>(0);
+  const [detectedYaw, setDetectedYaw] = useState<number>(0);
+  const [detectedPitch, setDetectedPitch] = useState<number>(0);
+  const [detectedFaceBox, setDetectedFaceBox] = useState<{top: number, left: number, width: number, height: number} | null>(null);
+
+  // Load models and perform real face landmark analysis
+  const performFaceDetection = async () => {
+    if (!imgRef.current) return;
+    try {
+      if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+        await faceapi.nets.tinyFaceDetector.loadFromUri("https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/");
+      }
+      if (!faceapi.nets.faceLandmark68Net.isLoaded) {
+        await faceapi.nets.faceLandmark68Net.loadFromUri("https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/");
+      }
+      
+      const detection = await faceapi.detectSingleFace(imgRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+      if (detection) {
+        const imgW = imgRef.current.naturalWidth || imgRef.current.width;
+        const imgH = imgRef.current.naturalHeight || imgRef.current.height;
+        const positions = detection.landmarks.positions;
+        
+        const mapP = (p: any) => ({ x: (p.x / imgW) * 100, y: (p.y / imgH) * 100 });
+        const mappedLandmarks = positions.map(mapP);
+        setActualLandmarks(mappedLandmarks);
+
+        // 1. Left Eye Center (average of index 36 to 41)
+        const leftEyePoints = mappedLandmarks.slice(36, 42);
+        const lEyeX = leftEyePoints.reduce((sum, p) => sum + p.x, 0) / 6;
+        const lEyeY = leftEyePoints.reduce((sum, p) => sum + p.y, 0) / 6;
+
+        // 2. Right Eye Center (average of index 42 to 47)
+        const rightEyePoints = mappedLandmarks.slice(42, 48);
+        const rEyeX = rightEyePoints.reduce((sum, p) => sum + p.x, 0) / 6;
+        const rEyeY = rightEyePoints.reduce((sum, p) => sum + p.y, 0) / 6;
+
+        const midX = (lEyeX + rEyeX) / 2;
+        const midY = (lEyeY + rEyeY) / 2;
+        setDetectedEyeCoords({ x: midX, y: midY });
+
+        // Nose Bridge (using landmark 27)
+        const nosePoint = mappedLandmarks[27];
+        setDetectedNoseCoords({ x: nosePoint.x, y: nosePoint.y });
+
+        // Distance between pupils
+        const dx = rEyeX - lEyeX;
+        const dy = rEyeY - lEyeY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        setDetectedEyeDistance(dist);
+
+        // 2D roll angle
+        const rollRad = Math.atan2(dy, dx);
+        const rollDeg = rollRad * (180 / Math.PI);
+        setDetectedTilt(rollDeg);
+
+        // Yaw orientation (using nose bridge vs eye midpoint)
+        const yawRatio = (nosePoint.x - midX) / dx;
+        const yawVal = Math.max(-30, Math.min(30, yawRatio * 50));
+        setDetectedYaw(yawVal);
+
+        // Pitch orientation (using vertical nose length vs eye distance)
+        const noseTip = mappedLandmarks[30];
+        const verticalDist = noseTip.y - midY;
+        const pitchRatio = verticalDist / dist;
+        const pitchVal = Math.max(-15, Math.min(15, (pitchRatio - 0.44) * 45));
+        setDetectedPitch(pitchVal);
+
+        setDetectedFaceBox({
+          left: (detection.alignedRect.box.left / imgW) * 100,
+          top: (detection.alignedRect.box.top / imgH) * 100,
+          width: (detection.alignedRect.box.width / imgW) * 100,
+          height: (detection.alignedRect.box.height / imgH) * 100,
+        });
+      }
+    } catch (e) {
+      console.error("Local faceapi detection failed inside glasses modal:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (imageSrc) {
+      performFaceDetection();
+    }
+  }, [imageSrc]);
+
+  // Unified Coordinates getters
+  const eyeCoords = detectedEyeCoords || fallbackEyeCoords;
+  const noseCoords = detectedNoseCoords || fallbackNoseCoords;
+
   // Interactive Simulator Configuration Positions
   const [tryOnModel, setTryOnModel] = useState<string>('round');
   const [frameColor, setFrameColor] = useState<string>('#1e293b'); // default luxury charcoal
-  const [offsetY, setOffsetY] = useState<number>(-1); // default aligned
+  const [offsetY, setOffsetY] = useState<number>(-1); 
   const [offsetX, setOffsetX] = useState<number>(0);
-  const [scale, setScale] = useState<number>(1.15); // default aligned width
-  const [tilt, setTilt] = useState<number>(0);
+  const [scale, setScale] = useState<number>(1.0); // manual scale multiplier (default is 1.0, representing perfect automatic fit)
+  const [tilt, setTilt] = useState<number>(0); // manual tilt rotation addition
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
 
@@ -232,6 +326,35 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
   const [autoAlign, setAutoAlign] = useState<boolean>(true);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanLogs, setScanLogs] = useState<string[]>([]);
+
+  // Calculate dynamic width of glasses based on physical eye-distance ratio
+  const getGlassesWidthPercent = () => {
+    if (detectedEyeDistance) {
+      // Proportional multiplier: frame width is roughly 2.1 times the inter-pupillary distance.
+      // This scales the glasses nicely regardless of your distance/crop of face!
+      return (detectedEyeDistance * 2.15) * scale;
+    }
+    // Fallback if local landmarks are loading or not available
+    if (detailedFaceData?.faceBox?.width) {
+      let maxVal = 0;
+      detailedFaceData.features?.forEach((f: any) => {
+        if (f.coordinate) {
+          maxVal = Math.max(maxVal, parseFloat(f.coordinate.x || 0), parseFloat(f.coordinate.y || 0));
+        }
+      });
+      const scaleFactor = maxVal > 105 ? 10 : 1;
+      const faceW = parseFloat(detailedFaceData.faceBox.width) / scaleFactor;
+      return faceW * 0.88 * scale;
+    }
+    return 55 * scale;
+  };
+
+  const finalGlassesWidth = getGlassesWidthPercent();
+
+  // Calculate coordinates, roll (tilt), yaw, and pitch
+  const finalTilt = autoAlign ? (detectedTilt + tilt) : tilt;
+  const finalYaw = autoAlign ? detectedYaw : 0;
+  const finalPitch = autoAlign ? detectedPitch : 0;
 
   const triggerAutoScan = () => {
     setIsScanning(true);
@@ -257,13 +380,14 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
         setScanLogs(prev => [...prev, log]);
         if (index === logs.length - 1) {
           setIsScanning(false);
-          // Auto perfect values
-          setOffsetY(-1);
+          // Run actual detection to lock parameters!
+          performFaceDetection();
+          setOffsetY(0);
           setOffsetX(0);
-          setScale(1.15);
+          setScale(1.0);
           setTilt(0);
         }
-      }, (index + 1) * 500);
+      }, (index + 1) * 550);
     });
   };
 
@@ -528,7 +652,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                         </p>
 
                         {/* Subject Profile Portrait */}
-                        <div className="my-6 relative rounded-2xl overflow-hidden aspect-[4/5] bg-stone-100 border border-stone-300 shadow-sm flex items-center justify-center">
+                        <div className="my-6 relative rounded-2xl overflow-hidden aspect-[4/5] bg-stone-100 border border-stone-300 shadow-sm flex items-center justify-center" style={{ perspective: '1000px' }}>
                           {imageSrc ? (
                             <img 
                               src={imageSrc} 
@@ -557,8 +681,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             style={{
                               top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                               left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
-                              width: `${55 * scale}%`,
-                              transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
+                              width: `${finalGlassesWidth}%`,
+                              transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
                             }}
                           >
                             <GlassesSvg type="round" color="#1e293b" />
@@ -703,7 +827,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                           >
                             <div>
                               {/* Subject's Face photo preview box */}
-                              <div className="w-full aspect-square rounded-xl bg-stone-50 border border-stone-200 overflow-hidden relative flex items-center justify-center">
+                              <div className="w-full aspect-square rounded-xl bg-stone-50 border border-stone-200 overflow-hidden relative flex items-center justify-center" style={{ perspective: '1000px' }}>
                                 {imageSrc ? (
                                   <img 
                                     src={imageSrc} 
@@ -721,8 +845,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                                   style={{
                                     top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                                     left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
-                                    width: `${56 * scale}%`,
-                                    transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
+                                    width: `${finalGlassesWidth}%`,
+                                    transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
                                   }}
                                 >
                                   <GlassesSvg type={model.id} color="#1e293b" />
@@ -778,7 +902,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             className="bg-white border border-[#eddcd2] rounded-2xl p-4 flex gap-4 hover:scale-[1.02] transition-transform cursor-pointer"
                           >
                             {/* Portrait preview thumbnail */}
-                            <div className="w-20 h-20 rounded-xl bg-stone-50 border border-stone-200 overflow-hidden relative flex items-center justify-center shrink-0">
+                            <div className="w-20 h-20 rounded-xl bg-stone-50 border border-stone-200 overflow-hidden relative flex items-center justify-center shrink-0" style={{ perspective: '1000px' }}>
                               {imageSrc ? (
                                 <img 
                                   src={imageSrc} 
@@ -796,8 +920,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                                 style={{
                                   top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                                   left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
-                                  width: `${56 * scale}%`,
-                                  transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
+                                  width: `${finalGlassesWidth}%`,
+                                  transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
                                 }}
                               >
                                 <GlassesSvg type={model.id} color="#b45309" />
@@ -960,12 +1084,14 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                       </div>
                       
                       {/* Interactive portrait try-on board */}
-                      <div className="w-full max-w-xs aspect-square bg-stone-800 border border-stone-200 rounded-xl overflow-hidden relative flex items-center justify-center select-none shadow-inner group">
+                      <div className="w-full max-w-xs bg-stone-800 border border-stone-200 rounded-xl overflow-hidden relative flex items-center justify-center select-none shadow-inner h-auto w-full group" style={{ perspective: '1000px' }}>
                         {imageSrc ? (
                           <img 
+                            ref={imgRef}
+                            onLoad={performFaceDetection}
                             src={imageSrc} 
                             alt="Interactive Custom Face try-on" 
-                            className="w-full h-full object-cover pointer-events-none brightness-105"
+                            className="w-full h-auto block pointer-events-none brightness-105 rounded-xl"
                             referrerPolicy="no-referrer"
                           />
                         ) : (
@@ -986,7 +1112,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             {/* Left Pupil */}
                             <div 
                               className={`absolute w-3 h-3 rounded-full border border-cyan-400 flex items-center justify-center pointer-events-none z-10 transition-all ${isScanning ? 'bg-cyan-400/80 scale-125' : 'bg-cyan-400/20'}`}
-                              style={{ left: `${eyeCoords.x - 4.5}%`, top: `${eyeCoords.y}%` }}
+                              style={{ left: `${actualLandmarks ? actualLandmarks[36].x + (actualLandmarks[39].x - actualLandmarks[36].x)/2 : eyeCoords.x - 4.5}%`, top: `${actualLandmarks ? actualLandmarks[36].y + (actualLandmarks[39].y - actualLandmarks[36].y)/2 : eyeCoords.y}%`, transform: 'translate(-50%, -50%)' }}
                             >
                               <span className="w-1 h-1 bg-white rounded-full animate-ping"></span>
                             </div>
@@ -994,7 +1120,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             {/* Right Pupil */}
                             <div 
                               className={`absolute w-3 h-3 rounded-full border border-cyan-400 flex items-center justify-center pointer-events-none z-10 transition-all ${isScanning ? 'bg-cyan-400/80 scale-125' : 'bg-cyan-400/20'}`}
-                              style={{ left: `${eyeCoords.x + 4.5}%`, top: `${eyeCoords.y}%` }}
+                              style={{ left: `${actualLandmarks ? actualLandmarks[42].x + (actualLandmarks[45].x - actualLandmarks[42].x)/2 : eyeCoords.x + 4.5}%`, top: `${actualLandmarks ? actualLandmarks[42].y + (actualLandmarks[45].y - actualLandmarks[42].y)/2 : eyeCoords.y}%`, transform: 'translate(-50%, -50%)' }}
                             >
                               <span className="w-1 h-1 bg-white rounded-full animate-ping"></span>
                             </div>
@@ -1002,7 +1128,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             {/* Nose Bridge */}
                             <div 
                               className={`absolute w-3 h-3 rounded-full border border-amber-500 flex items-center justify-center pointer-events-none z-10 transition-all ${isScanning ? 'bg-amber-500/80 scale-125' : 'bg-amber-500/20'}`}
-                              style={{ left: `${noseCoords.x}%`, top: `${noseCoords.y}%` }}
+                              style={{ left: `${noseCoords.x}%`, top: `${noseCoords.y}%`, transform: 'translate(-50%, -50%)' }}
                             >
                               <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
                             </div>
@@ -1011,10 +1137,11 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             <div 
                               className="absolute border border-dashed border-cyan-400/35 rounded-[38%/48%] pointer-events-none animate-pulse z-10" 
                               style={{
-                                left: `${eyeCoords.x - 35}%`,
-                                width: '70%',
-                                top: `${eyeCoords.y - 18}%`,
-                                height: '75%',
+                                left: `${eyeCoords.x}%`,
+                                top: `${eyeCoords.y}%`,
+                                width: `${detectedEyeDistance ? (detectedEyeDistance * 4.4) : 70}%`,
+                                height: `${detectedEyeDistance ? (detectedEyeDistance * 4.8) : 75}%`,
+                                transform: `translate(-50%, -40%) rotateZ(${finalTilt}deg)`,
                               }}
                             />
                           </>
@@ -1022,12 +1149,12 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
 
                         {/* Drag and overlay glasses on top */}
                         <div 
-                          className="absolute pointer-events-none cursor-move transition-all duration-150 select-none drop-shadow-lg" 
+                          className="absolute pointer-events-none cursor-move transition-all duration-150 select-none drop-shadow-lg animate-fade-in" 
                           style={{
                             top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                             left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
-                            width: `${56 * scale}%`,
-                            transform: `translate(-50%, -50%) rotate(${tilt}deg)`,
+                            width: `${finalGlassesWidth}%`,
+                            transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
                             opacity: isScanning ? 0.35 : 1,
                           }}
                         >
