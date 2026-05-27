@@ -1,10 +1,34 @@
-export type AppState = 'upload' | 'analyzing' | 'results' | 'history';
+export type AppState = 'landing' | 'login' | 'admin' | 'upload' | 'analyzing' | 'results' | 'history';
+
+export type UserRole = 'super_admin' | 'admin' | 'user';
+
+export interface User {
+  id: string;
+  name: string;
+  username: string;
+  role: UserRole;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  userId: string;
+  username: string;
+  role: UserRole;
+  action: string;
+  details?: string;
+}
 
 export interface HistoryItem {
   id: string;
   timestamp: Date;
   imageUrl: string | null;
   analysisData: AnalysisResult;
+  userId?: string;
+  userDisplayName?: string;
+  consultantNotes?: string;
+  consultantName?: string;
 }
 
 export interface AnalysisResult {

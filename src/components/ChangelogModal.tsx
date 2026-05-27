@@ -8,6 +8,97 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.23.0",
+      date: "27 May 2026",
+      changes: [
+        "Mendesain infografis poster editorial premium 'Spectacles Guide' dengan layout visual-first, garis tipis, dan kartu melengkung mewah.",
+        "Mengimplementasikan pemrosesan analisis kontur otomatis wajah (kombinasi rasio geometri kualifikasi) untuk rekomendasi kacamata cocok vs tidak cocok.",
+        "Menyajikan simulasi side-by-side kacamata yang cocok dan tidak cocok secara real-time langsung di atas potret subjek wajah yang sama.",
+        "Membangun Salon Coba Kacamata Virtual Interatif (Live Try-On Suite) lengkap dengan slider presisi kalibrasi (Y/X offset, Skala, dan Kemiringan) serta opsi penyesuaian material warna bingkai secara instan."
+      ],
+    },
+    {
+      version: "v2.22.0",
+      date: "27 May 2026",
+      changes: [
+        "Menambahkan overlay bingkai pola oval kontur silhouette wajah (Face Shape Oval Outline) interaktif di pemindai kamera.",
+        "Menyematkan pemantauan kepatuhan kalibrasi real-time (Presisi, Terang, Netral) guna mempermudah penempatan posisi.",
+        "Mendesain panel edukasi pedoman foto presisi estetika AI di halaman awal untuk konsistensi pengambilan gambar pasien."
+      ],
+    },
+    {
+      version: "v2.21.0",
+      date: "27 May 2026",
+      changes: [
+        "Menambahkan 4 bar visualisasi metrik rincian simetri elemen wajah (Alis, Mata, Bibir/Hidung, dan Dagu) pada panel dasar untuk menyeimbangkan layout visual.",
+        "Mengimplementasikan pemanggilan latar belakang (background pre-fetching) real-time Gemini AI langsung saat pemindaian awal selesai.",
+        "Menyetel konsistensi penuh skor dan visualisasi simetri wajah agar data sebelum dan sesudah mengklik tombol detail geometri seragam sempurna."
+      ],
+    },
+    {
+      version: "v2.20.0",
+      date: "27 May 2026",
+      changes: [
+        "Mendesain panel kecantikan & proporsi geometri simetri AI baru untuk mengisi ruang kosong di bawah bagian rahang visualisasi dahi.",
+        "Menyajikan skor visual persentase simetri wajah (Facial Symmetry Score) adaptif yang terintegrasi dengan data riwayat klinis pasien.",
+        "Menghadirkan mini-grid status kalibrasi kualifikasi Grid Horizontal klinis serta penunjuk Rasio Emas (Golden Ratio) penyeimbang estetika."
+      ],
+    },
+    {
+      version: "v2.19.0",
+      date: "27 May 2026",
+      changes: [
+        "Menambahkan fitur ekspor log audit keamanan sistem ke dalam format berkas CSV secara instan untuk analisis cepat berbasis spreadsheet.",
+        "Mengintegrasikan fitur ekspor log audit sistem kedalam format Laporan Ringkasan PDF multi-halaman berdesain medis premium dan berstempel kepatuhan HIPAA.",
+        "Membatasi kontrol ekspor dokumen log sistem secara eksklusif hanya dapat diakses oleh pemegang peran akun Super Admin."
+      ],
+    },
+    {
+      version: "v2.18.1",
+      date: "27 May 2026",
+      changes: [
+        "Meningkatkan antarmuka pengguna (UX) dengan memisahkan dialog konfirmasi hapus data medis menjadi format Modal Popup mengambang (overlay) dan latar blur (backdrop).",
+        "Menghilangkan konfirmasi inline sebaris data nama demi visualisasi panel registrasi yang lebih bersih dan rapi.",
+        "Menampilkan detail lengkap riwayat diagnosa pasien secara ringkas dan aman langsung di dalam kartu dialog sebelum eksekusi penghapusan."
+      ],
+    },
+    {
+      version: "v2.18.0",
+      date: "27 May 2026",
+      changes: [
+        "Menghadirkan fitur Hapus Record Medis & Catatan Pemindaian eksklusif bagi Super Admin (CEO/Dr. Clara).",
+        "Dilengkapi dialog konfirmasi bawaan (double check) sebelum menghapus berkas pasien guna meminimalkan kesalahan klinis.",
+        "Mengintegrasikan detektor log audit otomatis untuk setiap peristiwa pembersihan/penghapusan data secara transparan bagi tata kelola sertifikasi keamanan."
+      ],
+    },
+    {
+      version: "v2.17.0",
+      date: "27 May 2026",
+      changes: [
+        "Mendukung responsivitas scrollbar adaptif penuh pada daftar registrasi Diagnosis Ledgers & Anotasi Medis.",
+        "Mengintegrasikan modul penjelajah data berbasis paginasi (default 5 data per halaman, dengan pemilih ukuran halaman 5, 10, 20, 50, dan 100 baris).",
+        "Menghadirkan fitur ekspor/unduhan laporan PDF klinis instan secara independen langsung dari dasbor Admin & Super Admin untuk setiap klien yang terdaftar."
+      ],
+    },
+    {
+      version: "v2.16.0",
+      date: "27 May 2026",
+      changes: [
+        "Meningkatkan lapisan pengamanan riwayat (history): Mengisolasi riwayat agar data lengkap pemindaian hanya dapat dibaca oleh Admin dan Super Admin.",
+        "Membatasi hak akses pengguna biasa (user) secara ketat, sehingga mereka hanya dapat melihat dan membaca data riwayat yang ditambahkan melalui akun mereka sendiri."
+      ],
+    },
+    {
+      version: "v2.15.0",
+      date: "27 May 2026",
+      changes: [
+        "Menambahkan Landing Page spektakuler yang merangkum parameter dan stats kegunaan klinis Lumina Aesthetic AI.",
+        "Mengintegrasikan sistem autentikasi formal dan registrasi akun kustom dengan 3 Demo Presets instan (Super Admin, Aesthetic Consultant, VIP Client).",
+        "Mengimplementasikan Role-Based Access Control (RBAC) lengkap dengan dasbor anotasi catatan klinis dokter untuk admin, pelacakan audit keamanan real-time untuk Super Admin, dan riwayat yang terisolasi aman/terpusat.",
+        "Mengalirkan komentar medis/expert anotasi konsultan secara dinamis langsung ke visualizer dasbor hasil dan dokumen cetak PDF."
+      ],
+    },
+    {
       version: "v2.14.0",
       date: "27 May 2026",
       changes: [

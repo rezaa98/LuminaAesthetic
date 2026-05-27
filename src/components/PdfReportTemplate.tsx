@@ -6,13 +6,17 @@ interface PdfReportTemplateProps {
   imageSrc?: string | null;
   detailedFaceData?: any;
   intakeHistory?: { amount: number; time: Date }[];
+  consultantNotes?: string;
+  consultantName?: string;
 }
 
 export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({ 
   data, 
   imageSrc, 
   detailedFaceData, 
-  intakeHistory 
+  intakeHistory,
+  consultantNotes,
+  consultantName
 }) => {
   const carePlans = data.personalizedCarePlan?.length ? data.personalizedCarePlan : [
     { title: "Hydration Strategy", description: "Target minimum daily water intake of 2000ml to improve skin elasticity and moisture barrier from within." },
@@ -251,6 +255,16 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
                   </div>
                 ))}
               </div>
+
+              {consultantNotes && (
+                <div className="mt-4 p-4 bg-pink-50/50 border border-pink-100/80 rounded-xl">
+                  <span className="text-[9px] font-black uppercase tracking-wider text-pink-500 block mb-1">Catatan Khusus Konsultan Estetika</span>
+                  <p className="text-[11px] text-slate-700 font-medium italic leading-relaxed">
+                    "{consultantNotes}"
+                  </p>
+                  <span className="text-[9px] font-mono text-slate-400 font-bold block mt-2 text-right">— {consultantName || 'Dr. Lumina'}</span>
+                </div>
+              )}
             </div>
 
           </div>

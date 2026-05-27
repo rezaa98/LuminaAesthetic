@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowRight, Loader } from 'lucide-react';
+import { Sparkles, ArrowRight, Loader, LogIn, LogOut, ChevronRight, UserCog, UserCheck, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as faceapi from '@vladmandic/face-api';
-import { AppState, AnalysisResult, HistoryItem } from './types';
+import { AppState, AnalysisResult, HistoryItem, User, AuditLog, UserRole } from './types';
 import localforage from 'localforage';
 import { useLanguage } from './contexts/LanguageContext';
 
@@ -20,9 +20,15 @@ import { DashboardView } from './components/DashboardView';
 import { HistoryView } from './components/HistoryView';
 import { ChangelogModal } from './components/ChangelogModal';
 import { processImageWithAI } from './mockData';
+import { LandingPage } from './components/LandingPage';
+import { AuthView } from './components/AuthView';
+import { AdminPanel } from './components/AdminPanel';
 
 export default function App() {
-  const [appState, setAppState] = useState<AppState>('upload');
+  const [appState, setAppState] = useState<AppState>('landing');
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [activeRolePreset, setActiveRolePreset] = useState<UserRole | undefined>(undefined);
+  const [activeScanId, setActiveScanId] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [analysisCache, setAnalysisCache] = useState<Record<string, AnalysisResult>>({});
   const [uploadedImageURL, setUploadedImageURL] = useState<string | null>(null);
@@ -30,13 +36,76 @@ export default function App() {
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const { lang, language, setLanguage } = useLanguage();
 
+  // Load User Session & History On Mount
   useEffect(() => {
+    const savedUser = localStorage.getItem('lumina-active-user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        setCurrentUser(parsed);
+        setAppState('upload');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
     localforage.getItem<HistoryItem[]>('lumina-history').then(data => {
       if (data) {
         setHistory(data);
       }
     });
   }, []);
+
+  // Sync session and handle audit tracking
+  const handleAddAuditLog = (action: string, details?: string) => {
+    const newLog: AuditLog = {
+      id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      timestamp: new Date().toISOString(),
+      userId: currentUser?.id || 'guest',
+      username: currentUser?.username || 'guest',
+      role: currentUser?.role || 'user',
+      action,
+      details: details || ''
+    };
+    const savedLogsRaw = localStorage.getItem('lumina-audit-logs') || '[]';
+    const savedLogs: AuditLog[] = JSON.parse(savedLogsRaw);
+    savedLogs.push(newLog);
+    localStorage.setItem('lumina-audit-logs', JSON.stringify(savedLogs));
+  };
+
+  const handleSaveConsultantNotes = (scanId: string, notes: string) => {
+    setHistory(prev => {
+      const updated = prev.map(item => {
+        if (item.id === scanId) {
+          return {
+            ...item,
+            consultantNotes: notes,
+            consultantName: currentUser?.name || 'Dr. Lumina'
+          };
+        }
+        return item;
+      });
+      localforage.setItem('lumina-history', updated);
+      return updated;
+    });
+  };
+
+  const handleDeleteHistoryItem = (scanId: string) => {
+    setHistory(prev => {
+      const updated = prev.filter(item => item.id !== scanId);
+      localforage.setItem('lumina-history', updated);
+      return updated;
+    });
+    handleAddAuditLog('Hapus Record Medis', `Super Admin menghapus seluruh berkas pemeriksaan diagnosis ID: ${scanId}`);
+  };
+
+  // Filter history: regular users see their own scans only, admins/super admins see everything,
+  // guests only see scans in active guest state.
+  const visibleHistory = currentUser
+    ? (currentUser.role === 'admin' || currentUser.role === 'super_admin'
+      ? history
+      : history.filter(h => h.userId === currentUser.id))
+    : history.filter(h => h.userId === 'guest' || !h.userId);
 
   const [arModeActive, setArModeActive] = useState<boolean>(false);
   const [frameColor, setFrameColor] = useState({ hex: '#0f172a', name: 'Midnight' });
@@ -224,6 +293,8 @@ export default function App() {
         timestamp: new Date(),
         imageUrl: base64Image,
         analysisData: result,
+        userId: currentUser?.id || 'guest',
+        userDisplayName: currentUser?.name || 'Tamu Estetika'
       };
       
       setHistory(prev => {
@@ -231,6 +302,11 @@ export default function App() {
         localforage.setItem('lumina-history', next);
         return next;
       });
+
+      setActiveScanId(newHistoryItem.id);
+
+      // Audit Logger Activity
+      handleAddAuditLog('Scan Wajah AI', `Melakukan scan digital mandiri; Tipe Kulit: ${result.skinType.type}, Hidrasi: ${result.skinAnalysis.hydration}%`);
       
       setAppState('results');
     } catch (e: any) {
@@ -245,6 +321,7 @@ export default function App() {
     setAnalysisCache({});
     setAnalysisData(null);
     setArModeActive(false);
+    setActiveScanId(null);
     // DO NOT revokeObjectURL here anymore because history needs it!
     setUploadedImageURL(null);
   };
@@ -257,6 +334,7 @@ export default function App() {
     setAnalysisCache({ [language]: item.analysisData });
     setAnalysisData(item.analysisData);
     setUploadedImageURL(item.imageUrl);
+    setActiveScanId(item.id);
     setAppState('results');
   };
 
@@ -291,6 +369,91 @@ export default function App() {
     }
   }, [language, appState, uploadedImageURL, analysisCache]);
 
+  const activeScanItem = history.find(h => h.id === activeScanId);
+  const consultantNotes = activeScanItem?.consultantNotes;
+  const consultantName = activeScanItem?.consultantName;
+
+  if (appState === 'landing') {
+    return (
+      <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
+        <div className="min-h-[100dvh] md:h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl relative bg-white">
+          <header className="h-16 bg-white border-b border-slate-200/60 px-8 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
+                <Sparkles className="text-white w-4 h-4" />
+              </div>
+              <span className="font-extrabold text-lg tracking-tight text-slate-900">
+                Lumina<span className="text-pink-500 underline decoration-2">Aesthetic</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={() => setLanguage('id')} 
+                  className={`font-semibold text-xs transition-colors ${language === 'id' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-500'}`}
+                >
+                  ID
+                </button>
+                <span className="text-slate-300">|</span>
+                <button 
+                  onClick={() => setLanguage('en')} 
+                  className={`font-semibold text-xs transition-colors ${language === 'en' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-500'}`}
+                >
+                  EN
+                </button>
+              </div>
+              
+              <button
+                onClick={() => {
+                  setActiveRolePreset(undefined);
+                  setAppState('login');
+                }}
+                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-colors shadow-md flex items-center gap-1.5"
+                id="btn-landing-login-topbar"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                {language === 'id' ? 'Masuk' : 'Sign In'}
+              </button>
+            </div>
+          </header>
+
+          <LandingPage 
+            onStartAsGuest={() => {
+              setCurrentUser(null);
+              setAppState('upload');
+            }}
+            onOpenLogIn={(presetRole) => {
+              setActiveRolePreset(presetRole);
+              setAppState('login');
+            }}
+            language={language}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (appState === 'login') {
+    return (
+      <div className="min-h-[100dvh] md:h-screen w-full bg-[#fcfbfb] flex items-center justify-center p-4 sm:p-6 font-sans md:overflow-hidden text-slate-800">
+        <AuthView 
+          onBackToLanding={() => setAppState('landing')}
+          onLoginSuccess={(user) => {
+            setCurrentUser(user);
+            handleAddAuditLog('Login Sistem', `Pengguna mengautentikasi ke sistem dengan hak akses ${user.role.toUpperCase()}`);
+            if (user.role === 'admin' || user.role === 'super_admin') {
+              setAppState('admin');
+            } else {
+              setAppState('upload');
+            }
+          }}
+          language={language}
+          initialRolePreset={activeRolePreset}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
       <div className="min-h-[100dvh] md:h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl">
@@ -306,9 +469,22 @@ export default function App() {
             </span>
           </div>
           <nav className="flex items-center gap-4 md:gap-6 text-xs md:text-sm font-medium text-slate-500">
-            <button onClick={handleReset} className={`hover:text-slate-800 transition-colors ${appState !== 'history' ? 'text-pink-600 font-bold' : ''}`}>{lang.navAnalysis}</button>
+            
+            {currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
+              <button 
+                onClick={() => setAppState('admin')} 
+                className={`font-black uppercase tracking-tight pb-1 border-b-2 transition-all flex items-center gap-1 ${appState === 'admin' ? 'text-indigo-600 border-indigo-505 border-indigo-500' : 'text-indigo-400 border-transparent hover:text-indigo-650 hover:text-indigo-600'}`}
+                id="btn-header-admin-portal"
+              >
+                <Shield className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
+                {language === 'id' ? 'Panel Admin' : 'Admin Panel'}
+              </button>
+            )}
+
+            <button onClick={handleReset} className={`hover:text-slate-800 transition-colors ${appState !== 'history' && appState !== 'admin' ? 'text-pink-600 font-bold' : ''}`}>{lang.navAnalysis}</button>
             <button className="hidden md:block hover:text-slate-800 transition-colors cursor-not-allowed opacity-50">{lang.navAppointments}</button>
             <button onClick={handleViewHistory} className={`hover:text-slate-800 transition-colors ${appState === 'history' ? 'text-pink-600 font-bold' : ''}`}>{lang.navHistory}</button>
+            
             <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-200">
               <button 
                 onClick={() => setLanguage('id')} 
@@ -324,16 +500,47 @@ export default function App() {
                 EN
               </button>
             </div>
+
+            {/* Logout Trigger button inside clinical ecosystem */}
+            <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
+              <span className="text-[10px] font-mono whitespace-nowrap hidden sm:inline-block font-black uppercase text-slate-400 bg-slate-50 px-2 py-1 border border-slate-200 rounded leading-none">
+                {currentUser?.name ? currentUser.name.split(' ')[0] : 'Guest'}
+              </span>
+              <button
+                onClick={() => {
+                  handleAddAuditLog('Logout Sistem', 'Pengguna mereset sesi aktif dan keluar ke gerbang utama');
+                  localStorage.removeItem('lumina-active-user');
+                  setCurrentUser(null);
+                  setAppState('landing');
+                }}
+                className="p-1.5 hover:bg-slate-50 hover:text-rose-500 border border-transparent hover:border-slate-200 rounded-lg text-slate-400 transition-all cursor-pointer"
+                title={language === 'id' ? 'Keluar Sesi' : 'Sign Out'}
+                id="btn-nav-logout"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </nav>
         </header>
 
         {/* Main Content Area */}
         <main className="flex-1 flex flex-col md:flex-row md:overflow-hidden p-4 md:p-6 gap-4 md:gap-6 bg-slate-50 relative">
           
-          {appState === 'history' ? (
+          {appState === 'admin' ? (
+            <div className="w-full h-full absolute inset-0 md:static z-40 p-4 md:p-0 bg-slate-50 md:bg-transparent">
+              <AdminPanel 
+                currentUser={currentUser || { id: 'guest', name: 'Guest', username: 'guest', role: 'user', createdAt: '' }}
+                history={history}
+                onAddAuditLog={handleAddAuditLog}
+                onSaveConsultantNotes={handleSaveConsultantNotes}
+                onDeleteHistoryItem={handleDeleteHistoryItem}
+                language={language}
+              />
+            </div>
+          ) : appState === 'history' ? (
             <div className="w-full h-full absolute inset-0 md:static z-40 p-4 md:p-0 bg-slate-50 md:bg-transparent">
                <HistoryView 
-                 history={history} 
+                 history={visibleHistory} 
                  onSelect={handleSelectHistoryItem} 
                  onBack={() => setAppState('upload')} 
                />
@@ -536,7 +743,16 @@ export default function App() {
                 <p className="text-sm mt-1">{lang.uploadSubtitle ? (language === 'id' ? 'Unggah foto untuk memulai diagnosis AI' : 'Upload photo to start AI diagnosis') : 'Unggah foto untuk memulai diagnosis AI'}</p>
               </div>
             ) : (
-              analysisData && <DashboardView data={analysisData} onReset={handleReset} onTryOnAR={() => setArModeActive(true)} imageSrc={uploadedImageURL} />
+              analysisData && (
+                <DashboardView 
+                  data={analysisData} 
+                  onReset={handleReset} 
+                  onTryOnAR={() => setArModeActive(true)} 
+                  imageSrc={uploadedImageURL} 
+                  consultantNotes={consultantNotes}
+                  consultantName={consultantName}
+                />
+              )
             )}
           </section>
           </>
@@ -564,7 +780,7 @@ export default function App() {
               onClick={() => setShowChangelog(true)} 
               className="text-[10px] text-pink-500 hover:text-pink-600 font-mono tracking-wider font-bold underline decoration-pink-500/30 underline-offset-2 transition-colors cursor-pointer"
             >
-              v2.14.0 Updates
+              v2.23.0 Updates
             </button>
           </div>
         </footer>
