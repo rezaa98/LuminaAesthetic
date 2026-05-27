@@ -273,8 +273,20 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
         const dist = Math.sqrt(dx * dx + dy * dy);
         setDetectedEyeDistance(dist);
 
+        // Calculate tilt using exact pixel coordinates to avoid aspect-ratio skew
+        const leftEyePointsPx = positions.slice(36, 42);
+        const lEyeXPx = leftEyePointsPx.reduce((sum, p) => sum + p.x, 0) / 6;
+        const lEyeYPx = leftEyePointsPx.reduce((sum, p) => sum + p.y, 0) / 6;
+
+        const rightEyePointsPx = positions.slice(42, 48);
+        const rEyeXPx = rightEyePointsPx.reduce((sum, p) => sum + p.x, 0) / 6;
+        const rEyeYPx = rightEyePointsPx.reduce((sum, p) => sum + p.y, 0) / 6;
+
+        const dxPx = rEyeXPx - lEyeXPx;
+        const dyPx = rEyeYPx - lEyeYPx;
+
         // 2D roll angle
-        const rollRad = Math.atan2(dy, dx);
+        const rollRad = Math.atan2(dyPx, dxPx);
         const rollDeg = rollRad * (180 / Math.PI);
         setDetectedTilt(rollDeg);
 
@@ -329,10 +341,16 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
 
   // Calculate dynamic width of glasses based on physical eye-distance ratio
   const getGlassesWidthPercent = () => {
+    // Determine base width using the AI detected accurate face box
+    if (detectedFaceBox && detectedFaceBox.width) {
+       // The face box tight-fits the head. Standard glasses are slightly wider than temples.
+       // We use ~108% of the face width for a natural fit.
+       return (detectedFaceBox.width * 1.08) * scale;
+    }
+    // Fallback to eye distance calculation if box isn't available
     if (detectedEyeDistance) {
-      // Proportional multiplier: frame width is roughly 2.1 times the inter-pupillary distance.
-      // This scales the glasses nicely regardless of your distance/crop of face!
-      return (detectedEyeDistance * 2.15) * scale;
+      // frame width is roughly 2.3 times the inter-pupillary distance.
+      return (detectedEyeDistance * 2.3) * scale;
     }
     // Fallback if local landmarks are loading or not available
     if (detailedFaceData?.faceBox?.width) {
@@ -344,7 +362,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
       });
       const scaleFactor = maxVal > 105 ? 10 : 1;
       const faceW = parseFloat(detailedFaceData.faceBox.width) / scaleFactor;
-      return faceW * 0.88 * scale;
+      return faceW * 1.05 * scale;
     }
     return 55 * scale;
   };
@@ -633,31 +651,51 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                   <div className="absolute bottom-4 left-4 w-6 h-6 border-b border-l border-stone-300"></div>
                   <div className="absolute bottom-4 right-4 w-6 h-6 border-b border-r border-stone-300"></div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch pt-2">
-                    
-                    {/* LEFT SECTION (Col 5): Main Subject Portrait & Title */}
-                    <div className="lg:col-span-5 flex flex-col justify-between border-b lg:border-b-0 lg:border-r border-[#eddcd2] pb-6 lg:pb-0 lg:pr-8">
-                      <div>
-                        {/* Title Elegant Serif Header */}
-                        <div className="font-serif">
-                          <h3 className="text-4xl md:text-[46px] font-black text-stone-950 leading-none tracking-tight">
-                            Spectacles
-                          </h3>
-                          <h3 className="text-4xl md:text-[46px] font-black text-stone-950 leading-none tracking-tight mt-1">
-                            Guide
-                          </h3>
+                  <div className="flex flex-col gap-8 lg:gap-10 pt-2">
+                    {/* OVERARCHING HEADER */}
+                    <div className="flex flex-col md:flex-row md:items-end justify-between border-b border-[#eddcd2] pb-6 gap-6">
+                      <div className="font-serif">
+                        <div className="flex items-center gap-4 text-5xl md:text-6xl font-black text-stone-950 leading-none tracking-tight">
+                           <span>Spectacles Guide</span>
+                           <Sparkles className="w-8 h-8 text-amber-600 opacity-60 hidden sm:block" />
                         </div>
-                        <p className="text-[10px] font-mono font-black text-amber-700 tracking-[0.2em] uppercase mt-3 py-1 border-y border-[#eddcd2]">
-                          {language === 'id' ? 'TEMUKAN BINGKAI SEMPURNA ANDA' : 'FIND YOUR PERFECT FRAME'}
+                        <p className="text-[11px] font-mono font-black text-stone-500 tracking-[0.25em] uppercase mt-4">
+                          {language === 'id' ? 'TEMUKAN BINGKAI SEMPURNA ANDA' : 'FIND YOUR MOST FLATTERING FRAMES'}
                         </p>
+                      </div>
+                      
+                      {/* Face Shape Info Badge extracted from analysis */}
+                      <div className="bg-white rounded-2xl p-4 md:p-5 border border-[#e3dfd7] shadow-sm flex items-center gap-4 md:min-w-[240px]">
+                        <div className="w-12 h-16 relative flex items-center justify-center shrink-0">
+                           <svg viewBox="0 0 100 130" className="w-full h-full">
+                               <path d="M 15 45 C 10 90, 25 120, 50 120 C 75 120, 90 90, 85 45 C 80 15, 20 15, 15 45 Z" fill="none" stroke="#292524" strokeWidth="3" />
+                               <path d="M 28 42 Q 38 36 45 42" stroke="#292524" strokeWidth="3" fill="none" />
+                               <path d="M 55 42 Q 62 36 72 42" stroke="#292524" strokeWidth="3" fill="none" />
+                               <ellipse cx="36" cy="50" rx="5" ry="3" fill="#292524" />
+                               <ellipse cx="64" cy="50" rx="5" ry="3" fill="#292524" />
+                           </svg>
+                        </div>
+                        <div className="text-left">
+                           <p className="text-[9px] uppercase font-mono font-black tracking-widest text-stone-400 mb-1">FACE SHAPE</p>
+                           <h4 className="font-serif text-3xl md:text-4xl tracking-tight leading-none text-stone-900 capitalize">
+                             {data?.faceFeatures?.shape || 'Oval'}
+                           </h4>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+                    
+                    {/* LEFT SECTION: Main Subject Portrait */}
+                    <div className="lg:col-span-6 flex flex-col gap-6">
 
                         {/* Subject Profile Portrait */}
-                        <div className="my-6 relative rounded-2xl overflow-hidden aspect-[4/5] bg-stone-100 border border-stone-300 shadow-sm flex items-center justify-center" style={{ perspective: '1000px' }}>
+                        <div className="mt-4 mb-2 relative rounded-3xl overflow-hidden max-w-sm mx-auto bg-stone-100 border border-stone-300 shadow-sm inline-block w-full" style={{ perspective: '1000px' }}>
                           {imageSrc ? (
                             <img 
                               src={imageSrc} 
                               alt="Spectacles Face Preview" 
-                              className="w-full h-full object-cover"
+                              className="block w-full h-auto"
                               referrerPolicy="no-referrer"
                             />
                           ) : (
@@ -675,7 +713,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             </span>
                           </div>
 
-                          {/* Default calibration preview overlay of ROUND glasses framed */}
+                          {/* Optimal frame overlay prediction */}
                           <div 
                             className="absolute pointer-events-none transition-all duration-300" 
                             style={{
@@ -685,114 +723,79 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                               transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
                             }}
                           >
-                            <GlassesSvg type="round" color="#1e293b" />
+                            <GlassesSvg type={mapping.suitable[0] || 'round'} color="#1e293b" />
                           </div>
                         </div>
                       </div>
 
                       {/* Editorial Quick Tips */}
-                      <div className="bg-[#f2efe9] rounded-xl p-4 border border-[#e3dfd7] text-left text-[11px] text-stone-600 space-y-1">
-                        <p className="font-bold flex items-center gap-1.5 uppercase text-stone-800 tracking-wider">
-                          <Sparkles className="w-3.5 h-3.5 text-amber-700 animate-pulse" />
-                          {language === 'id' ? 'Tips Cepat Estetika' : 'Quick Tip'}
-                        </p>
-                        <p className="font-semibold leading-relaxed">
-                          {language === 'id'
-                            ? 'Pilihlah kacamata yang memberikan kontras berlawanan dengan bentuk wajah Anda untuk memicu aspek proporsi simetri yang maksimal.'
-                            : 'Choose frames that contrast your natural curves. High contrast shapes add structural clarity and premium bone definitions.'}
+                      <div className="bg-[#fcfbf9] rounded-2xl p-5 border border-[#e3dfd7] shadow-sm text-left mt-2">
+                        <div className="flex items-center gap-2 mb-2">
+                           <Sparkles className="w-4 h-4 text-amber-600" />
+                           <h5 className="font-mono text-[10px] font-black uppercase tracking-widest text-stone-800">
+                              {language === 'id' ? 'Tips Presisi Geometri' : 'Geometry Precision Tips'}
+                           </h5>
+                        </div>
+                        <p className="text-[11px] text-stone-500 font-medium leading-relaxed">
+                           {language === 'id' 
+                              ? 'Pilihlah kacamata dengan garis bingkai yang memberikan elemen kontras berlawanan dengan bentuk profil wajah alami Anda untuk menciptakan proporsi simetri yang maksimal.' 
+                              : 'Choose eyewear with frame lines that provide a contrasting element to your natural face profile shape to create maximum symmetric aesthetics.'}
                         </p>
                       </div>
                     </div>
 
-                    {/* RIGHT SECTION (Col 7): Face Analysis Dashboard of ratios, metrics, and outline */}
-                    <div className="lg:col-span-7 flex flex-col justify-between lg:pl-4 space-y-6">
+                    {/* RIGHT SECTION: Analysis and Best Models */}
+                    <div className="lg:col-span-6 flex flex-col space-y-8">
                       
-                      {/* Dynamic Header */}
-                      <div className="text-center py-1 bg-stone-100 rounded border border-stone-200 uppercase tracking-[0.2em] text-[9.5px] font-mono text-stone-500 font-extrabold">
-                        {language === 'id' ? 'ANALISIS GEOMETRI WAJAH' : 'YOUR FACE ANALYSIS'}
+                      {/* BEST FRAME STYLES BOX */}
+                      <div className="bg-[#fcfbf9] rounded-2xl p-5 md:p-6 border border-[#e3dfd7] shadow-sm">
+                         <p className="text-[10.5px] font-mono font-black text-amber-700 uppercase tracking-[0.2em] mb-6 text-center">
+                            {language === 'id' ? 'GAYA BINGKAI TERBAIK' : 'BEST FRAME STYLES'}
+                         </p>
+                         <div className="grid grid-cols-3 gap-y-6 gap-x-4">
+                            {glassesModels.map((model) => {
+                               const rec = mapping.suitable.includes(model.id);
+                               if (!rec) return null;
+                               return (
+                                  <div key={model.id} className="flex flex-col items-center gap-3">
+                                     <div className="w-16 h-7 text-[#292524] drop-shadow-sm"><GlassesSvg type={model.id} color="currentColor" /></div>
+                                     <span className="text-[8.5px] font-black text-stone-500 uppercase tracking-widest text-center leading-tight">{language === 'id' ? model.nameId : model.nameEn}</span>
+                                  </div>
+                               );
+                            })}
+                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-6 items-center">
-                        {/* Schematic Face Shape Oval Sketch Outline mapping */}
-                        <div className="sm:col-span-5 flex flex-col items-center justify-center p-3 border border-stone-200 rounded-2xl bg-white/70">
-                          <span className="text-[8px] font-mono font-black text-stone-400 uppercase tracking-widest mb-2">
-                            {language === 'id' ? 'Tipe Siluet' : 'Silhouette Map'}
-                          </span>
-                          
-                          {/* Face schematic drawing via inline SVG */}
-                          <div className="w-24 h-32 relative flex items-center justify-center">
-                            <svg viewBox="0 0 100 130" className="w-full h-full opacity-80">
-                              {/* Head Outline contour */}
-                              <path 
-                                d="M 15 45 C 10 90, 25 120, 50 120 C 75 120, 90 90, 85 45 C 80 15, 20 15, 15 45 Z" 
-                                fill="none" 
-                                stroke="#a8a29e" 
-                                strokeWidth="1.8" 
-                              />
-                              {/* Hair outline contour */}
-                              <path 
-                                d="M 14 43 C 20 8, 80 8, 86 43 L 83 45 C 80 25, 20 25, 17 45 Z" 
-                                fill="#eddcd2" 
-                                stroke="#78716c" 
-                                strokeWidth="2" 
-                              />
-                              {/* Brows */}
-                              <path d="M 28 42 Q 38 36 45 42" stroke="#44403c" strokeWidth="2.5" fill="none" />
-                              <path d="M 55 42 Q 62 36 72 42" stroke="#44403c" strokeWidth="2.5" fill="none" />
-                              {/* Eyes */}
-                              <ellipse cx="36" cy="50" rx="5" ry="3" fill="#44403c" />
-                              <ellipse cx="64" cy="50" rx="5" ry="3" fill="#44403c" />
-                              {/* Nose */}
-                              <path d="M 50 48 L 50 78 Q 50 82 46 82" stroke="#78716c" strokeWidth="1.8" fill="none" />
-                              {/* Lips */}
-                              <path d="M 38 92 Q 50 86 62 92 Q 50 102 38 92" fill="#fda4af" stroke="#f43f5e" strokeWidth="1" />
-                            </svg>
-                            {/* Symmetric boundary dashes ring overlay wrapper */}
-                            <div className="absolute inset-0 border border-dashed border-amber-600/60 rounded-[48px/64px] animate-pulse"></div>
-                          </div>
-                          
-                          <p className="text-xs font-black text-stone-800 mt-2 font-serif uppercase tracking-widest">
-                            {data?.faceFeatures?.shape || 'Universal'} Shape
-                          </p>
-                        </div>
-
-                        {/* Analysis Key Details (Key Features) */}
-                        <div className="sm:col-span-7 space-y-3.5">
+                      <div className="space-y-5 px-1">
+                        {/* Analysis Key Details */}
+                        <div className="space-y-4">
                           {keyFeatures.map((feat, idx) => (
-                            <div key={idx} className="flex items-start gap-2 text-left">
-                              <span className="mt-0.5 w-4 h-4 bg-amber-500/10 border border-amber-500/20 text-amber-700 rounded-full flex items-center justify-center font-mono text-[9px] font-black shrink-0">
+                            <div key={idx} className="flex items-start gap-3 text-left">
+                              <span className="mt-0.5 w-[18px] h-[18px] text-amber-700 border border-[#eddcd2] rounded-full flex items-center justify-center font-mono text-[9px] font-black shrink-0">
                                 {idx + 1}
                               </span>
-                              <div className="text-[11.5px]">
-                                <h4 className="font-extrabold text-stone-900 leading-none">
+                              <div className="text-[11.5px] -mt-0.5">
+                                <h4 className="font-semibold text-stone-800 leading-none">
                                   {language === 'id' ? feat.titleId : feat.titleEn}
                                 </h4>
-                                <p className="text-stone-500 font-semibold leading-tight text-[10px] mt-0.5">
-                                  {language === 'id' ? feat.descId : feat.descEn}
-                                </p>
                               </div>
                             </div>
                           ))}
                         </div>
-                      </div>
 
-                      {/* PROPORTIONS GRID (Four micro-badges) */}
-                      <div className="border-t border-[#eddcd2] pt-4 space-y-2.5">
-                        <p className="text-[9px] font-mono font-black text-stone-400 uppercase tracking-[0.25em] text-center">
-                          {language === 'id' ? 'ESTIMASI PROPORSI MATEMATIS' : 'KEY PROPORTIONS RATIOS'}
-                        </p>
-                        <div className="grid grid-cols-4 gap-2">
+                        {/* PROPORTIONS GRID */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 pt-4 border-t border-[#eddcd2]">
                           {[
                             { nameEn: 'Eye Width', nameId: 'Lebar Mata', valEn: 'Balanced', valId: 'Presisi' },
                             { nameEn: 'Nose Width', nameId: 'Lebar Hidung', valEn: 'Medium', valId: 'Seimbang' },
                             { nameEn: 'Lips Arc', nameId: 'Kurva Bibir', valEn: 'Symmetric', valId: 'Simetris' },
                             { nameEn: 'Face Width', nameId: 'Rasio Panjang', valEn: 'Oval Ideal', valId: 'Sempurna' },
                           ].map((item, idx) => (
-                            <div key={idx} className="bg-white border border-[#eddcd2] rounded-xl p-2.5 text-center shadow-sm">
-                              <p className="text-[8.5px] font-black text-stone-400 uppercase tracking-wider line-clamp-1 leading-none font-mono">
+                            <div key={idx} className="border-l-2 border-[#eddcd2] pl-3 py-1">
+                              <p className="text-[8px] font-black text-stone-400 uppercase tracking-widest line-clamp-1 leading-none font-mono mb-1.5">
                                 {language === 'id' ? item.nameId : item.nameEn}
                               </p>
-                              <p className="text-[10px] font-black text-stone-850 mt-1 uppercase tracking-tight leading-none">
+                              <p className="text-[11px] font-medium text-stone-800 leading-none">
                                 {language === 'id' ? item.valId : item.valEn}
                               </p>
                             </div>
@@ -827,16 +830,18 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                           >
                             <div>
                               {/* Subject's Face photo preview box */}
-                              <div className="w-full aspect-square rounded-xl bg-stone-50 border border-stone-200 overflow-hidden relative flex items-center justify-center" style={{ perspective: '1000px' }}>
+                              <div className="inline-block w-full rounded-xl bg-stone-50 border border-stone-200 overflow-hidden relative" style={{ perspective: '1000px' }}>
                                 {imageSrc ? (
                                   <img 
                                     src={imageSrc} 
                                     alt="Face Suitability tryon" 
-                                    className="w-full h-full object-cover rounded-xl brightness-105"
+                                    className="block w-full h-auto rounded-xl brightness-105"
                                     referrerPolicy="no-referrer"
                                   />
                                 ) : (
-                                  <Layers className="w-6 h-6 text-stone-300" />
+                                  <div className="w-full aspect-square flex items-center justify-center">
+                                    <Layers className="w-6 h-6 text-stone-300" />
+                                  </div>
                                 )}
 
                                 {/* SVG overlay mapping suitable frames */}
