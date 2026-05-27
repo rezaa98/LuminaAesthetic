@@ -1,6 +1,7 @@
 import React from 'react';
 import { AnalysisResult } from '../types';
 import { glassesModels, GlassesSvg } from './GlassesFrameModal';
+import { HairstyleSvg } from './HairstyleSvg';
 
 interface PdfReportTemplateProps {
   data: AnalysisResult;
@@ -273,7 +274,9 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
               </h2>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="text-xs uppercase font-bold text-slate-400 mb-2 tracking-wider">Hairstyles</h3>
+                  <h3 className="text-xs uppercase font-bold text-slate-400 mb-2 tracking-wider">
+                    {language === 'id' ? 'Gaya Rambut' : 'Hairstyles'}
+                  </h3>
                   <ul className="space-y-1.5">
                     {data.hairstyles.recommendedStyles.slice(0, 3).map((style, idx) => (
                       <li key={idx} className="text-xs font-bold flex items-center gap-2 text-slate-700">
@@ -658,13 +661,13 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
              
              <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col h-full">
                 <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
-                  {language === 'id' ? 'Gaya Rambut Pendukung' : 'Complementary Hairstyles'}
+                  {language === 'id' ? 'Geometri Rambut Optimal' : 'Optimal Hairstyle Geometry'}
                 </h3>
                 <div className="flex-1 space-y-3">
                    {data.hairstyles && data.hairstyles.recommendedStyles && data.hairstyles.recommendedStyles.map((style, idx) => (
                       <div key={idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
-                            <span className="font-bold text-slate-400">{idx+1}</span>
+                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 p-1.5 text-slate-500">
+                            <HairstyleSvg styleName={style} color="currentColor" />
                          </div>
                          <p className="font-bold text-slate-700">{style}</p>
                       </div>

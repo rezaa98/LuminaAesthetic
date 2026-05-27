@@ -9,6 +9,7 @@ import { PdfReportTemplate } from "./PdfReportTemplate";
 import { FaceFeatureModal } from "./FaceFeatureModal";
 import { GlassesFrameModal } from "./GlassesFrameModal";
 import { ColorAnalysisModal } from "./ColorAnalysisModal";
+import { HairstyleSvg } from "./HairstyleSvg";
 import { useLanguage } from "../contexts/LanguageContext";
 
 interface DashboardViewProps {
@@ -709,13 +710,18 @@ export function DashboardView({
               <div>
                 <p className="text-[9px] font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1.5 uppercase">
                   <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
-                  {language === 'id' ? 'Rekomendasi Rambut' : 'Hair'}
+                  {language === 'id' ? 'Geometri Rambut Optimal' : 'Optimal Hairstyle Geometry'}
                 </p>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="grid grid-cols-2 gap-2">
                   {data.hairstyles.recommendedStyles.map((style, idx) => (
-                    <span key={idx} className="px-2.5 py-1 bg-white border border-slate-200/80 rounded-lg text-[10px] font-bold text-slate-600 shadow-sm shadow-slate-100/50">
-                      {style}
-                    </span>
+                    <div key={idx} className="bg-white border border-slate-200/80 rounded-xl p-2 flex items-center gap-2.5 shadow-sm shadow-slate-100/50">
+                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center shrink-0 text-slate-400 p-1.5">
+                        <HairstyleSvg styleName={style} color="currentColor" />
+                      </div>
+                      <span className="text-[9px] sm:text-[10px] font-bold text-slate-600 leading-tight">
+                        {style}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </div>
