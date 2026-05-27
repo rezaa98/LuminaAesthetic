@@ -27,7 +27,7 @@ interface GlassesFrameModalProps {
   onTryOnAR?: () => void;
 }
 
-const glassesModels = [
+export const glassesModels = [
   { id: 'round', nameEn: 'Intellectual Round', nameId: 'Bulat Klasik', type: 'round', descEn: 'Soothing circular outlines.', descId: 'Siluet melingkar lembut.' },
   { id: 'square', nameEn: 'Symmetrical Square', nameId: 'Kotak Terstruktur', type: 'square', descEn: 'High-contrast framing.', descId: 'Bingkai sudut rapi.' },
   { id: 'oval', nameEn: 'Sleek Oval', nameId: 'Oval Lembut', type: 'oval', descEn: 'Curved aesthetics.', descId: 'Estetika melengkung.' },
@@ -36,7 +36,7 @@ const glassesModels = [
 ];
 
 // Highly stylized SVG Glasses shapes for the simulation overlay
-const GlassesSvg = ({ type, color }: { type: string; color: string }) => {
+export const GlassesSvg = ({ type, color }: { type: string; color: string }) => {
   switch (type) {
     case 'round':
       return (
@@ -344,13 +344,13 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
     // Determine base width using the AI detected accurate face box
     if (detectedFaceBox && detectedFaceBox.width) {
        // The face box tight-fits the head. Standard glasses are slightly wider than temples.
-       // We use ~108% of the face width for a natural fit.
-       return (detectedFaceBox.width * 1.08) * scale;
+       // We use ~114% of the face width for a natural fit based on current user feedback.
+       return (detectedFaceBox.width * 1.14) * scale;
     }
     // Fallback to eye distance calculation if box isn't available
     if (detectedEyeDistance) {
       // frame width is roughly 2.3 times the inter-pupillary distance.
-      return (detectedEyeDistance * 2.3) * scale;
+      return (detectedEyeDistance * 2.6) * scale;
     }
     // Fallback if local landmarks are loading or not available
     if (detailedFaceData?.faceBox?.width) {
@@ -362,9 +362,9 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
       });
       const scaleFactor = maxVal > 105 ? 10 : 1;
       const faceW = parseFloat(detailedFaceData.faceBox.width) / scaleFactor;
-      return faceW * 1.05 * scale;
+      return faceW * 1.12 * scale;
     }
-    return 55 * scale;
+    return 60 * scale;
   };
 
   const finalGlassesWidth = getGlassesWidthPercent();
@@ -726,7 +726,6 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             <GlassesSvg type={mapping.suitable[0] || 'round'} color="#1e293b" />
                           </div>
                         </div>
-                      </div>
 
                       {/* Editorial Quick Tips */}
                       <div className="bg-[#fcfbf9] rounded-2xl p-5 border border-[#e3dfd7] shadow-sm text-left mt-2">
@@ -805,6 +804,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
 
                     </div>
                   </div>
+                </div>
 
                   {/* 2. TRY-ON: SUITABLE STYLES (Grid of 5 customized overlay cards on same face!) */}
                   <div className="border-t border-[#eddcd2] mt-8 pt-6 space-y-4">

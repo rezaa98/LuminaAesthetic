@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Shield, Compass, Palette, Heart, Users, ArrowRight, ArrowUpRight, CheckCircle2, UserCheck, Activity, Award } from 'lucide-react';
+import { Sparkles, Shield, Compass, Palette, Heart, Users, ArrowRight, ArrowUpRight, CheckCircle2, UserCheck, Activity, Award, Glasses, FileText } from 'lucide-react';
 import { UserRole } from '../types';
+
+import { FaceShapeQuiz } from './FaceShapeQuiz';
 
 interface LandingPageProps {
   onStartAsGuest: () => void;
@@ -33,12 +35,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpen
     {
       icon: <Compass className="w-6 h-6 text-purple-500" />,
       title: isEn ? '3D Geometry Face Matrix' : 'Matriks Geometri Wajah 3D',
-      desc: isEn ? 'Calculates eyebrow placement, facial symmetry scores, jawline soft/sharp curvature indices, and frame suitability.' : 'Menghitung rasio alis, skor simometri wajah penuh, indeks kelengkungan rahang, serta kesesuaian bingkai mata.'
+      desc: isEn ? 'Calculates eyebrow placement, facial symmetry scores, jawline soft/sharp curvature indices, and face shapes.' : 'Menghitung rasio alis, skor simetri, indeks kelengkungan rahang, ukuran proporsi bentuk wajah secara akurat.'
     },
     {
-      icon: <Shield className="w-6 h-6 text-emerald-500" />,
-      title: isEn ? 'Expert Clinic Integration' : 'Integrasi Rekomendasi Klinik',
-      desc: isEn ? 'Direct annotation capabilities where certified medical consultants review AI charts and write bespoke notes.' : 'Kemampuan anotasi rujukan di mana konsultan kecantikan bersertifikat meninjau bagan dan menyertakan saran resep.'
+      icon: <Glasses className="w-6 h-6 text-sky-500" />,
+      title: isEn ? 'Virtual AR Spectacles Fitting' : 'Virtual Try-On Kacamata AR',
+      desc: isEn ? 'Spatial face tracking overlays recommended eyeglasses with proportional scaling, auto-tilt alignment, and hair style matching.' : 'Proyeksi AR kacamata otomatis mengukur proporsi lebar mata, rotasi, tilt, dan gaya rambut yang mendukung keseimbangan.'
+    },
+    {
+      icon: <FileText className="w-6 h-6 text-emerald-500" />,
+      title: isEn ? 'Aesthetic Clinical PDF Reports' : 'Export Laporan Klinis PDF',
+      desc: isEn ? 'Generate comprehensive 4-page clinical-grade visual dossiers analyzing facial symmetry, aesthetic colors, and spatial recommendations.' : 'Hasilkan buku laporan diagnosis kecantikan 4-halaman mencakup rasio simetri, analisis palet warna, dan panduan presisi geometri.'
+    },
+    {
+      icon: <Shield className="w-6 h-6 text-amber-500" />,
+      title: isEn ? 'Expert Clinic Integration' : 'Integrasi Spesialis Estetika',
+      desc: isEn ? 'Direct annotation capabilities where certified medical consultants review AI charts and write bespoke notes.' : 'Kemampuan anotasi rujukan di mana konsultan kecantikan bersertifikat meninjau bagan dan menyertakan saran resep aktual.'
     }
   ];
 
@@ -96,8 +108,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpen
           className="text-sm sm:text-base text-slate-500 max-w-xl leading-relaxed mb-10 font-normal"
         >
           {isEn 
-            ? 'Clinically backed artificial intelligence mapped for modern face profiles. Deep skin analyses, Seasonal color pairing, 3D spectacles fitting with granular clinic consultant reviews.'
-            : 'Kecerdasan buatan klinis untuk pemetaan wajah modern secara akurat. Diagnosis kulit mendalam, rujukan spektrum warna musiman, kacamata AR, lengkap dengan audit anotas konsultan.'}
+            ? 'Clinically-engineered AI mapped for modern face profiles. Experience our newest Virtual AR Spectacles Fitting, identify your exact face shape with our Quiz, and generate beautiful 4-page aesthetic reports.'
+            : 'Sistem kecerdasan klinis AI untuk menganalisa rasio wajah Anda. Jelajahi Virtual Try-On kacamata AR terbaru kami, temukan proporsi asli wajah Anda melalui Kuis instan, dan cetak laporan estetik 4-halaman langsung.'}
         </motion.p>
 
         <motion.div
@@ -139,6 +151,47 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpen
         </div>
       </section>
 
+      {/* High-Impact App Highlights */}
+      <section className="px-6 py-12 max-w-4xl mx-auto w-full shrink-0">
+         <div className="grid md:grid-cols-2 gap-6">
+            <div className="bg-sky-50 rounded-3xl p-8 border border-sky-100 flex flex-col h-full transform transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-sky-500/10 cursor-pointer">
+               <Glasses className="w-10 h-10 text-sky-500 mb-6" />
+               <h3 className="text-2xl font-black text-sky-900 mb-3 leading-tight tracking-tight">
+                  {isEn ? 'Virtual AR Try-On' : 'Virtual AR Kacamata'}
+               </h3>
+               <p className="text-sm font-medium text-sky-800 leading-relaxed mb-6">
+                  {isEn 
+                    ? 'Our newest feature accurately plots your facial landmarks to virtually overlay spectacles in true 3D perspective. Finds your ideal frame style complementing your exact face shape algorithmically.'
+                    : 'Fitur terbaru kami memetakan sendi wajah Anda untuk memproyeksikan tampilan simulasi kacamata dalam proporsi 3D. Menemukan gaya kacamata ideal berdasarkan kecocokan otomatis algoritma kontur Anda.'}
+               </p>
+               <div className="mt-auto pt-4 border-t border-sky-200">
+                  <span className="text-xs font-bold text-sky-600 uppercase tracking-widest flex items-center gap-2">
+                     <Sparkles className="w-3.5 h-3.5" />
+                     {isEn ? 'New in Version 2.15' : 'Baru di Versi 2.15'}
+                  </span>
+               </div>
+            </div>
+
+            <div className="bg-emerald-50 rounded-3xl p-8 border border-emerald-100 flex flex-col h-full transform transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer">
+               <FileText className="w-10 h-10 text-emerald-500 mb-6" />
+               <h3 className="text-2xl font-black text-emerald-900 mb-3 leading-tight tracking-tight">
+                  {isEn ? '4-Page PDF Reports' : 'Laporan Lengkap 4-Halaman'}
+               </h3>
+               <p className="text-sm font-medium text-emerald-800 leading-relaxed mb-6">
+                  {isEn 
+                    ? 'Transform your face scan into a beautifully crafted, clinical-grade 4-page PDF document. Features color analysis grids, geometric ratios, and the aesthetic spectacles guide.'
+                    : 'Ubah pemindaian wajah Anda menjadi dokumen resep kecantikan cetak PDF 4-halaman. Memuat tabel matriks rona warna, kalkulasi geometri mandiri, dan buku panduan resep kacamata.'}
+               </p>
+               <div className="mt-auto pt-4 border-t border-emerald-200">
+                  <span className="text-xs font-bold text-emerald-600 uppercase tracking-widest flex items-center gap-2">
+                     <Compass className="w-3.5 h-3.5" />
+                     {isEn ? 'Detailed Architecture Guide' : 'Sistem Arsitektur Terperinci'}
+                  </span>
+               </div>
+            </div>
+         </div>
+      </section>
+
       {/* Feature Showcase Grid */}
       <section className="px-6 py-12 max-w-4xl mx-auto w-full shrink-0">
         <div className="text-center mb-10">
@@ -163,6 +216,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpen
             </div>
           ))}
         </div>
+      </section>
+
+      {/* Face Shape Manual Quiz */}
+      <section className="px-6 py-12 max-w-4xl mx-auto w-full shrink-0">
+         <FaceShapeQuiz language={language} />
       </section>
 
       {/* Active Roles & Audit Ledger Access */}

@@ -1344,6 +1344,7 @@ export function DashboardView({
             intakeHistory={intakeHistory} 
             consultantNotes={consultantNotes}
             consultantName={consultantName}
+            language={language}
           />
         </div>
       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { AnalysisResult } from '../types';
+import { glassesModels, GlassesSvg } from './GlassesFrameModal';
 
 interface PdfReportTemplateProps {
   data: AnalysisResult;
@@ -8,6 +9,7 @@ interface PdfReportTemplateProps {
   intakeHistory?: { amount: number; time: Date }[];
   consultantNotes?: string;
   consultantName?: string;
+  language?: 'en' | 'id';
 }
 
 export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({ 
@@ -16,7 +18,8 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
   detailedFaceData, 
   intakeHistory,
   consultantNotes,
-  consultantName
+  consultantName,
+  language = 'en'
 }) => {
   const carePlans = data.personalizedCarePlan?.length ? data.personalizedCarePlan : [
     { title: "Hydration Strategy", description: "Target minimum daily water intake of 2000ml to improve skin elasticity and moisture barrier from within." },
@@ -139,6 +142,61 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
   const season = determineSeason(data);
   const details = getSeasonDetails(season);
 
+  const getGlassesMapping = (shape: string) => {
+    const shapeKey = shape.toLowerCase();
+    let suitable: string[] = [];
+    let unsuitable: string[] = [];
+
+    if (shapeKey.includes('round') || shapeKey.includes('bulat')) {
+      suitable = ['square', 'wayfarer', 'cateye', 'oval', 'aviator'];
+      unsuitable = ['round', 'narrow', 'oversized'];
+    } else if (shapeKey.includes('square') || shapeKey.includes('kotak')) {
+      suitable = ['round', 'oval', 'cateye', 'aviator', 'wayfarer'];
+      unsuitable = ['square', 'narrow', 'oversized'];
+    } else if (shapeKey.includes('oval')) {
+      suitable = ['round', 'square', 'oval', 'cateye', 'wayfarer'];
+      unsuitable = ['narrow', 'oversized', 'shield'];
+    } else if (shapeKey.includes('heart') || shapeKey.includes('hati')) {
+      suitable = ['wayfarer', 'oval', 'aviator', 'round', 'cateye'];
+      unsuitable = ['square', 'narrow', 'oversized'];
+    } else if (shapeKey.includes('diamond') || shapeKey.includes('berlian')) {
+      suitable = ['oval', 'round', 'wayfarer', 'cateye', 'aviator'];
+      unsuitable = ['square', 'narrow', 'shield'];
+    } else {
+      suitable = ['wayfarer', 'square', 'round', 'oval', 'cateye'];
+      unsuitable = ['narrow', 'oversized', 'shield'];
+    }
+    return { suitable, unsuitable };
+  };
+
+  const getSuitabilityDetails = (modelId: string, shape: string, mapping: { suitable: string[] }) => {
+    const isSuitable = mapping.suitable.includes(modelId);
+    let score = isSuitable ? 95 : 45;
+
+    // fine tune scores
+    if (modelId === 'wayfarer') score = isSuitable ? 98 : 42;
+    if (modelId === 'square') score = isSuitable ? 94 : 35;
+    if (modelId === 'round') score = isSuitable ? 96 : 38;
+    if (modelId === 'cateye') score = isSuitable ? 92 : 48;
+    if (modelId === 'oval') score = isSuitable ? 91 : 41;
+    if (modelId === 'narrow') score = 34;
+    if (modelId === 'oversized') score = 44;
+    if (modelId === 'shield') score = 30;
+
+    const rationaleEn = isSuitable 
+      ? `Contrasts beautifully with your ${shape} outline. It adds structural balance and lift.`
+      : `Mimics your existing ${shape} proportions too intensely.`;
+      
+    const rationaleId = isSuitable
+      ? `Memberikan kontras dinamis yang ideal pada bentuk wajah ${shape} Anda. Memperkuat harmoni dan menyeimbangkan rasio wajah.`
+      : `Meniru proporsi ${shape} Anda secara berlebihan dan membuat wajah terlihat tidak seimbang.`;
+
+    return { score, isSuitable, rationale: language === 'id' ? rationaleId : rationaleEn };
+  };
+
+  const faceShape = data.faceFeatures.shape;
+  const glassesMapping = getGlassesMapping(faceShape);
+
   return (
     <div id="pdf-report-template" className="flex flex-col gap-12 bg-slate-100 p-8">
       
@@ -228,12 +286,15 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
                 <div>
                   <h3 className="text-xs uppercase font-bold text-slate-400 mb-2 tracking-wider">Glasses Frames</h3>
                   <ul className="space-y-1.5">
-                    {data.spectacles.recommendedFrames.slice(0, 3).map((frame, idx) => (
-                      <li key={idx} className="text-xs font-bold flex items-center gap-2 text-slate-700">
-                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
-                        {frame}
-                      </li>
-                    ))}
+                    {glassesMapping.suitable.slice(0, 3).map((frameId, idx) => {
+                      const model = glassesModels.find(m => m.id === frameId);
+                      return (
+                        <li key={idx} className="text-xs font-bold flex items-center gap-2 text-slate-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                          {model?.nameEn}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               </div>
@@ -273,7 +334,7 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
         {/* Footer Page 1 */}
         <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 uppercase tracking-widest shrink-0">
           <p>Lumina Aesthetic Clinic &copy; {new Date().getFullYear()}</p>
-          <p>Page 1 of 3</p>
+          <p>Page 1 of 4</p>
         </div>
       </div>
 
@@ -283,7 +344,7 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
         <div className="flex justify-between items-end border-b border-slate-200 pb-6 mb-8 shrink-0">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-1">Advanced Diagnostics</h1>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Page 2 of 3 • Facial Geometry Ledger</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Page 2 of 4 • Facial Geometry Ledger</p>
           </div>
         </div>
 
@@ -394,7 +455,7 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
         {/* Footer Page 2 */}
         <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 uppercase tracking-widest shrink-0">
           <p>Lumina Aesthetic Clinic &copy; {new Date().getFullYear()}</p>
-          <p>Page 2 of 3</p>
+          <p>Page 2 of 4</p>
         </div>
       </div>
 
@@ -404,7 +465,7 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
         <div className="flex justify-between items-end border-b border-slate-200 pb-6 mb-8 shrink-0">
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-1">Personal Color Spectrum</h1>
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Page 3 of 3 • Seasonal Fitting Guidelines</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Page 3 of 4 • Seasonal Fitting Guidelines</p>
           </div>
         </div>
 
@@ -532,7 +593,102 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
         {/* Footer Page 3 */}
         <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 uppercase tracking-widest shrink-0">
           <p>Lumina Aesthetic Clinic &copy; {new Date().getFullYear()}</p>
-          <p>Page 3 of 3</p>
+          <p>Page 3 of 4</p>
+        </div>
+      </div>
+
+      {/* Page 4 - Spectacles Guide */}
+      <div className="pdf-page w-[800px] h-[1131px] bg-white p-12 text-slate-800 flex flex-col font-sans relative overflow-hidden shrink-0">
+        {/* Header */}
+        <div className="flex justify-between items-end border-b border-slate-200 pb-6 mb-8 shrink-0">
+          <div>
+            <h1 className="text-2xl font-black tracking-tight text-slate-800 mb-1">
+              {language === 'id' ? 'Panduan Bingkai Estetik' : 'Aesthetic Spectacles Guide'}
+            </h1>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">
+              {language === 'id' ? 'Halaman 4 dari 4 • Rekomendasi Spasial' : 'Page 4 of 4 • Spatial Recommendations'}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex-1 flex flex-col gap-6">
+          <div className="grid grid-cols-2 gap-6">
+             <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col h-full">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
+                  {language === 'id' ? 'Rekomendasi Bentuk Kacamata' : 'Recommended Glasses Shapes'}
+                </h3>
+                <div className="flex-1 space-y-3">
+                   {glassesMapping.suitable.slice(0, 4).map((frameId, idx) => {
+                      const model = glassesModels.find(m => m.id === frameId);
+                      if (!model) return null;
+                      const suitDetails = getSuitabilityDetails(model.id, faceShape, glassesMapping);
+                      return (
+                         <div key={idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col gap-3">
+                            <div className="flex items-center gap-4">
+                              <div className="w-14 h-6 text-slate-800 shrink-0 drop-shadow-sm">
+                                 <GlassesSvg type={model.id} color="currentColor" />
+                              </div>
+                              <div>
+                                 <div className="flex items-center gap-2">
+                                    <p className="font-bold text-slate-700 text-sm leading-none">
+                                      {language === 'id' ? model.nameId : model.nameEn}
+                                    </p>
+                                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[8px] font-black tracking-widest uppercase rounded">
+                                       {suitDetails.score}% {language === 'id' ? 'Cocok' : 'Match'}
+                                    </span>
+                                 </div>
+                                 <p className="text-[10px] text-slate-400 mt-1">
+                                  {language === 'id' ? model.descId : model.descEn}
+                                 </p>
+                              </div>
+                            </div>
+                            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                              <p className="text-[9.5px] leading-relaxed text-slate-500">
+                                 <span className="font-bold text-slate-600 mr-1">
+                                  {language === 'id' ? 'Dasar Pemikiran:' : 'Rationale:'}
+                                 </span>
+                                 {suitDetails.rationale}
+                              </p>
+                            </div>
+                         </div>
+                      );
+                   })}
+                </div>
+             </div>
+             
+             <div className="p-6 bg-slate-50 border border-slate-100 rounded-2xl flex flex-col h-full">
+                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
+                  {language === 'id' ? 'Gaya Rambut Pendukung' : 'Complementary Hairstyles'}
+                </h3>
+                <div className="flex-1 space-y-3">
+                   {data.hairstyles && data.hairstyles.recommendedStyles && data.hairstyles.recommendedStyles.map((style, idx) => (
+                      <div key={idx} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
+                            <span className="font-bold text-slate-400">{idx+1}</span>
+                         </div>
+                         <p className="font-bold text-slate-700">{style}</p>
+                      </div>
+                   ))}
+                </div>
+             </div>
+          </div>
+
+          <div className="bg-slate-800 text-white rounded-2xl p-6 mt-4">
+             <h3 className="text-sm font-bold uppercase tracking-widest text-slate-300 mb-4">
+               {language === 'id' ? 'Tips Presisi Estetika' : 'Aesthetic Precision Tip'}
+             </h3>
+             <p className="text-sm leading-relaxed text-slate-200">
+               {language === 'id' 
+                ? `Untuk mencapai harmoni yang optimal, pilih kacamata dan gaya rambut yang menyeimbangkan dimensi wajah ${data.faceFeatures.shape} alami Anda. Bentuk yang berlawanan biasanya paling mendukung estetika; contohnya bingkai kotak tajam untuk wajah melengkung, atau bingkai membulat untuk struktur tulang wajah yang tegas.` 
+                : `To achieve optimal symmetry, aim to select frames and hairstyles that balance your natural ${data.faceFeatures.shape} dimensions. Contrast shapes are usually flattering, e.g. sharp frames for curved features or softly curved frames for strong angular bone structures.`}
+             </p>
+          </div>
+        </div>
+
+        {/* Footer Page 4 */}
+        <div className="mt-auto pt-6 border-t border-slate-100 flex justify-between items-center text-[10px] text-slate-400 uppercase tracking-widest shrink-0">
+          <p>Lumina Aesthetic Clinic &copy; {new Date().getFullYear()}</p>
+          <p>{language === 'id' ? 'Halaman 4 dari 4' : 'Page 4 of 4'}</p>
         </div>
       </div>
 
