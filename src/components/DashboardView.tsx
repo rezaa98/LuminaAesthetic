@@ -1,12 +1,15 @@
 import { motion } from "motion/react";
 import { AnalysisResult } from "../types";
-import { ScanFace, Scissors, Loader, Download } from "lucide-react";
+import { ScanFace, Scissors, Loader, Download, Palette } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import * as faceapi from "@vladmandic/face-api";
 import * as htmlToImage from "html-to-image";
 import jsPDF from "jspdf";
 import { PdfReportTemplate } from "./PdfReportTemplate";
 import { FaceFeatureModal } from "./FaceFeatureModal";
+import { GlassesFrameModal } from "./GlassesFrameModal";
+import { ColorAnalysisModal } from "./ColorAnalysisModal";
+import { useLanguage } from "../contexts/LanguageContext";
 
 interface DashboardViewProps {
   data: AnalysisResult;
@@ -21,10 +24,13 @@ export function DashboardView({
   onTryOnAR,
   imageSrc,
 }: DashboardViewProps) {
+  const { lang, language } = useLanguage();
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [showSkinAnalysisModal, setShowSkinAnalysisModal] = useState(false);
   const [showFaceFeatureModal, setShowFaceFeatureModal] = useState(false);
-  const [detailedFaceData, setDetailedFaceData] = useState<any>(null);
+  const [showGlassesModal, setShowGlassesModal] = useState(false);
+  const [showColorAnalysisModal, setShowColorAnalysisModal] = useState(false);
+  const [detailedFaceData, setDetailedFaceData] = useState<{ [key: string]: any }>({});
   const [faceData, setFaceData] = useState<any>(null);
   const [isFaceScanning, setIsFaceScanning] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -38,25 +44,13 @@ export function DashboardView({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleDownloadReport = async () => {
-    const reportElement = document.getElementById("pdf-report-template");
-    if (!reportElement) return;
+    const pages = document.querySelectorAll(".pdf-page");
+    if (!pages || pages.length === 0) return;
 
     setIsDownloading(true);
     try {
       // Small delay to ensure any layout shifts are complete
       await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const imgData = await htmlToImage.toJpeg(reportElement, {
-        quality: 0.95,
-        backgroundColor: "#ffffff",
-        pixelRatio: 2,
-      });
-
-      const img = new Image();
-      img.src = imgData;
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
 
       const pdf = new jsPDF({
         orientation: "portrait",
@@ -64,11 +58,24 @@ export function DashboardView({
         format: "a4",
       });
 
-      // Calculate the width and height to fit the A4 page (A4 size: 595.28 x 841.89 pt)
       const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (img.height * pdfWidth) / img.width;
+      const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      for (let i = 0; i < pages.length; i++) {
+        const pageElement = pages[i] as HTMLElement;
+        const imgData = await htmlToImage.toJpeg(pageElement, {
+          quality: 0.95,
+          backgroundColor: "#ffffff",
+          pixelRatio: 2,
+        });
+
+        if (i > 0) {
+          pdf.addPage();
+        }
+        
+        pdf.addImage(imgData, "JPEG", 0, 0, pdfWidth, pdfHeight);
+      }
+
       pdf.save("LuminaAesthetic-Report.pdf");
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -290,7 +297,7 @@ export function DashboardView({
       id="dashboard-report-content"
     >
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-bold text-slate-800">Analisis Result</h2>
+        <h2 className="text-xl font-bold text-slate-800">{lang.scanResult || 'Analysis Result'}</h2>
         <button
           onClick={handleDownloadReport}
           disabled={isDownloading}
@@ -301,7 +308,7 @@ export function DashboardView({
           ) : (
             <Download size={16} />
           )}
-          {isDownloading ? "Generating..." : "Download Report"}
+          {isDownloading ? lang.generating : lang.downloadReport}
         </button>
       </div>
 
@@ -322,12 +329,12 @@ export function DashboardView({
             <ScanFace size={16} className="text-pink-500" />
           </div>
           <h3 className="text-xs font-bold uppercase text-slate-400 mb-2 tracking-wider">
-            Skin Diagnosis
+            {lang.skinDiagnosis}
           </h3>
           <div className="flex items-center gap-4">
             <div className="flex-1">
               <p className="text-sm font-semibold text-slate-800">
-                Tingkat Hidrasi:{" "}
+                {lang.hydrationLevel}:{" "}
                 <span className="text-pink-600">
                   {data.skinAnalysis.hydration}%
                 </span>
@@ -337,7 +344,7 @@ export function DashboardView({
               </p>
             </div>
             <div className="w-12 h-12 rounded-full border-4 border-pink-500 flex items-center justify-center text-[10px] font-bold text-pink-600 shrink-0">
-              MOD
+              {data.skinAnalysis.rednessLevels.substring(0,3).toUpperCase()}
             </div>
           </div>
         </motion.div>
@@ -349,7 +356,7 @@ export function DashboardView({
           data-testid="card-skin-type"
         >
           <h3 className="text-xs font-bold uppercase text-slate-400 mb-2 tracking-wider">
-            Skin Type
+            {lang.skinType || 'Skin Type'}
           </h3>
           <div className="flex justify-between items-center">
             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-tight line-clamp-1">
@@ -359,7 +366,7 @@ export function DashboardView({
               onClick={() => setShowTypeModal(true)}
               className="text-[10px] text-slate-400 border border-slate-200 px-2 py-1 rounded hover:bg-slate-50 transition-colors shrink-0"
             >
-              Compare
+              {language === 'id' ? 'Bandingkan' : 'Compare'}
             </button>
           </div>
           <div className="mt-3 flex gap-1 h-2 mb-1">
@@ -383,13 +390,13 @@ export function DashboardView({
              <ScanFace className="w-4 h-4 text-slate-500" />
           </div>
           <h3 className="text-xs font-bold uppercase text-slate-500 mb-4 tracking-wider">
-            Geometry Analysis
+            {lang.faceGeometry || 'Geometry Analysis'}
           </h3>
           <div className="flex-1 flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.8)]"></div>
               <div>
-                <p className="text-xs text-slate-400">Face Shape</p>
+                <p className="text-xs text-slate-400">{lang.faceShape || 'Face Shape'}</p>
                 <p className="text-sm font-semibold">
                   {data.faceFeatures.shape}
                 </p>
@@ -398,7 +405,7 @@ export function DashboardView({
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-pink-500"></div>
               <div>
-                <p className="text-xs text-slate-400">Eye Type</p>
+                <p className="text-xs text-slate-400">{lang.eyes || 'Eye Type'}</p>
                 <p className="text-sm font-semibold">
                   {data.faceFeatures.eyes}
                 </p>
@@ -407,7 +414,7 @@ export function DashboardView({
             <div className="flex items-center gap-3">
               <div className="w-2 h-2 rounded-full bg-pink-500"></div>
               <div>
-                <p className="text-xs text-slate-400">Jawline</p>
+                <p className="text-xs text-slate-400">{lang.jawline || 'Jawline'}</p>
                 <p className="text-sm font-semibold">
                   {data.faceFeatures.jawline}
                 </p>
@@ -415,65 +422,108 @@ export function DashboardView({
             </div>
             <div className="mt-auto p-3 bg-white/5 rounded-lg border border-white/10">
               <p className="text-[11px] leading-relaxed text-slate-300 italic">
-                "Bentuk wajah oval sangat fleksibel untuk berbagai gaya kacamata
-                dan rambut."
+                "{data.faceFeatures.summary || 'Karakteristik wajah yang unik dan fleksibel untuk berbagai penyesuaian gaya kacamata dan rambut.'}"
               </p>
             </div>
           </div>
         </motion.div>
 
-        {/* 4. Spectacles Guide */}
+        {/* 4. Face Shape & Style Guide */}
         <motion.div
           variants={itemVariants}
           className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm col-span-1 md:row-span-1 flex flex-col"
           data-testid="card-spectacles"
         >
           <h3 className="text-xs font-bold uppercase text-slate-400 mb-2 tracking-wider">
-            Glasses Frame
+            {lang.glassesFrame || 'Face Shape & Style'}
           </h3>
-          <div className="grid grid-cols-2 gap-2 flex-1">
-            {data.spectacles.recommendedFrames.map((frame, idx) => (
-              <div
-                key={idx}
-                className="p-2 bg-slate-50 rounded-lg border border-slate-100 flex flex-col justify-center"
-              >
-                <p className="text-[11px] font-bold line-clamp-2 leading-tight">
-                  {frame}
-                </p>
+          <div className="flex-1 flex flex-col gap-2">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 mb-1">KACAMATA</p>
+              <div className="flex flex-wrap gap-1">
+                {data.spectacles.recommendedFrames.map((frame, idx) => (
+                  <span key={idx} className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold">
+                    {frame}
+                  </span>
+                ))}
               </div>
-            ))}
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 mb-1">RAMBUT</p>
+              <div className="flex flex-wrap gap-1">
+                {data.hairstyles.recommendedStyles.map((style, idx) => (
+                  <span key={idx} className="px-2 py-1 bg-slate-50 border border-slate-100 rounded text-[10px] font-bold">
+                    {style}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
           <button
-            onClick={onTryOnAR}
+            onClick={() => setShowGlassesModal(true)}
             className="w-full mt-3 py-1.5 bg-pink-50 text-pink-600 rounded-lg text-[10px] font-bold border border-pink-100 hover:bg-pink-100 transition-colors uppercase tracking-wider text-center"
             data-testid="btn-virtual-try-on"
           >
-            Virtual Try-On
+            {lang.faceShapeGuide || 'Face Shape Guide'}
           </button>
         </motion.div>
 
-        {/* 5. Hairstyles Analysis */}
+        {/* 5. Color Analysis */}
         <motion.div
           variants={itemVariants}
-          className="bg-pink-500 text-white rounded-xl p-4 shadow-sm col-span-1 md:row-span-1 flex flex-col"
-          data-testid="card-hairstyles"
+          className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 shadow-sm col-span-1 md:row-span-1 flex flex-col cursor-pointer hover:shadow-md transition-all group"
+          data-testid="card-color-analysis"
+          onClick={() => setShowColorAnalysisModal(true)}
         >
-          <h3 className="text-xs font-bold uppercase text-pink-200 mb-2 tracking-wider">
-            Hairstyle Recs
-          </h3>
-          <div className="flex gap-3 items-center flex-1">
-            <div className="flex-1 flex flex-col justify-center gap-2">
-              {data.hairstyles.recommendedStyles.map((style, idx) => (
-                <p key={idx} className="text-sm font-bold leading-tight">
-                  {style}
+          <div className="flex justify-between items-start mb-2">
+            <h3 className="text-xs font-bold uppercase text-indigo-400 tracking-wider">
+              {lang.colorAnalysis || 'Color Analysis'}
+            </h3>
+            <Palette className="w-4 h-4 text-indigo-400 group-hover:text-indigo-600 transition-colors" />
+          </div>
+          <div className="flex-1 flex flex-col justify-center">
+            {data.colorAnalysis ? (
+              <>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {data.colorAnalysis.detailedAnalysis?.slice(0, 3).map((c, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 bg-white border border-indigo-100 px-2 py-1 rounded-full shadow-sm">
+                      <div className="w-3 h-3 rounded-full border border-black/10" style={{ backgroundColor: c.colorHex }}></div>
+                      <span className="text-[10px] font-bold text-slate-700">{c.colorName}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Compatibility Progress Bar */}
+                {(() => {
+                  const top3Scores = data.colorAnalysis.detailedAnalysis?.slice(0, 3).map(c => c.score) || [];
+                  const avgScore = top3Scores.length > 0
+                    ? Math.round(top3Scores.reduce((sum, s) => sum + s, 0) / top3Scores.length)
+                    : 0;
+                  return (
+                    <div className="mb-3">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">
+                          {language === 'id' ? 'Kecocokan Warna' : 'Color Compatibility'}
+                        </span>
+                        <span className="text-[10px] font-black text-indigo-700">{avgScore}%</span>
+                      </div>
+                      <div className="w-full h-1.5 bg-indigo-200/50 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-indigo-400 to-indigo-600 rounded-full transition-all duration-500" 
+                          style={{ width: `${avgScore}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                <p className="text-[10px] text-slate-500 italic line-clamp-2 leading-relaxed">
+                  "{data.colorAnalysis.summary}"
                 </p>
-              ))}
-            </div>
-            <Scissors
-              className="w-10 h-10 text-white opacity-20"
-              viewBox="0 0 24 24"
-              strokeWidth={1}
-            />
+              </>
+            ) : (
+                <p className="text-[10px] text-slate-400 italic">No color analysis data available.</p>
+            )}
           </div>
         </motion.div>
 
@@ -750,7 +800,7 @@ export function DashboardView({
               {!faceData && !isFaceScanning && imageSrc && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <div className="bg-black/60 px-4 py-2 rounded-lg backdrop-blur-sm text-xs font-mono text-white/80 border border-white/10 z-30">
-                    Wajah kurang terdeteksi jelas
+                    {language === 'id' ? 'Wajah kurang terdeteksi jelas' : 'Face not clearly detected'}
                   </div>
                 </div>
               )}
@@ -759,10 +809,10 @@ export function DashboardView({
             {/* Right Side: Detailed Analysis Data */}
             <div className="w-full md:w-[55%] p-6 md:p-8 bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col overflow-y-auto">
               <h3 className="text-xl font-bold text-white mb-1">
-                Detailed Facial Topology
+                {language === 'id' ? 'Topologi Wajah Detail' : 'Detailed Facial Topology'}
               </h3>
               <p className="text-sm text-slate-400 mb-6">
-                Analisis mendalam area wajah. Profil Anda:{" "}
+                {language === 'id' ? 'Analisis mendalam area wajah. Profil Anda:' : 'Deep facial area analysis. Your profile:'} {" "}
                 <strong className="text-pink-400">
                   {data.skinType.type.toUpperCase()}
                 </strong>
@@ -773,7 +823,7 @@ export function DashboardView({
                 <div className="p-4 bg-slate-800/50 rounded-2xl border border-white/10 flex items-center justify-between gap-4">
                   <div className="flex-shrink-0">
                     <p className="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">
-                      Status Hidrasi
+                      {language === 'id' ? 'Status Hidrasi' : 'Hydration Status'}
                     </p>
                     <p className="text-xl font-black text-blue-400">
                       {data.skinAnalysis.hydration}%
@@ -786,122 +836,167 @@ export function DashboardView({
                   </div>
                 </div>
 
-                {/* Zone 1 */}
-                <div className="p-4 bg-slate-800/50 rounded-2xl border border-pink-500/20 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-pink-500"></div>
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h4 className="font-bold text-pink-400 uppercase tracking-widest text-xs mb-1">
-                        T-Zone (Dahi & Hidung)
-                      </h4>
-                      <span className="text-white text-sm font-semibold">
-                        Produksi Sebum & Pori Besar
-                      </span>
-                    </div>
-                    <span className="bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded text-[10px] font-bold">
-                      INFO
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
-                    Area ini memiliki kelenjar keringat terpadat, menyebabkan
-                    seringnya kelebihan minyak dan berisiko komedo pada cuaca
-                    tropis.
-                  </p>
-                  <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2 block">
-                      Saran Perawatan
-                    </span>
-                    <ul className="text-xs text-emerald-400 font-medium space-y-1.5 list-disc list-inside">
-                      <li>Gunakan cleanser berbasis BHA (Salicylic Acid).</li>
-                      <li>
-                        Spot treatment di area hidung dengan Niacinamide 5%.
-                      </li>
-                      <li>
-                        Hindari pelembab berat (cream) di area ini, pilih Gel.
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+                {data.facialMapping && data.facialMapping.length > 0 ? (
+                  data.facialMapping.map((zone, idx) => {
+                    const colorClasses = {
+                      pink: { bg: 'bg-pink-500', border: 'border-pink-500/20', text: 'text-pink-400', badgeBg: 'bg-pink-500/20' },
+                      blue: { bg: 'bg-blue-500', border: 'border-blue-400/20', text: 'text-blue-400', badgeBg: 'bg-blue-500/20' },
+                      emerald: { bg: 'bg-emerald-500', border: 'border-emerald-400/20', text: 'text-emerald-400', badgeBg: 'bg-emerald-500/20' }
+                    };
+                    const theme = colorClasses[zone.colorHint] || colorClasses.pink;
 
-                {/* Zone 2 */}
-                <div className="p-4 bg-slate-800/50 rounded-2xl border border-blue-400/20 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h4 className="font-bold text-blue-400 uppercase tracking-widest text-xs mb-1">
-                        U-Zone (Kedua Pipi)
-                      </h4>
-                      <span className="text-white text-sm font-semibold">
-                        Kapasitas Hidrasi Menurun
-                      </span>
+                    return (
+                      <div key={idx} className={`p-4 bg-slate-800/50 rounded-2xl border ${theme.border} relative overflow-hidden`}>
+                        <div className={`absolute top-0 left-0 w-1 h-full ${theme.bg}`}></div>
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className={`font-bold ${theme.text} uppercase tracking-widest text-xs mb-1`}>
+                              {zone.zone}
+                            </h4>
+                            <span className="text-white text-sm font-semibold">
+                              {zone.condition}
+                            </span>
+                          </div>
+                          <span className={`${theme.badgeBg} ${theme.text} px-2 py-0.5 rounded text-[10px] font-bold`}>
+                            {zone.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                          {zone.description}
+                        </p>
+                        <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2 block">
+                            {language === 'id' ? 'Saran Perawatan' : 'Care Advice'}
+                          </span>
+                          <ul className="text-xs text-emerald-400 font-medium space-y-1.5 list-disc list-inside">
+                            {zone.recommendations.map((rec, rIdx) => (
+                              <li key={rIdx}>{rec}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  <>
+                    {/* Fallback Zone 1 */}
+                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-pink-500/20 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-pink-500"></div>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-bold text-pink-400 uppercase tracking-widest text-xs mb-1">
+                            T-Zone (Dahi & Hidung)
+                          </h4>
+                          <span className="text-white text-sm font-semibold">
+                            Produksi Sebum & Pori Besar
+                          </span>
+                        </div>
+                        <span className="bg-pink-500/20 text-pink-400 px-2 py-0.5 rounded text-[10px] font-bold">
+                          INFO
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                        Area ini memiliki kelenjar keringat terpadat, menyebabkan
+                        seringnya kelebihan minyak dan berisiko komedo pada cuaca
+                        tropis.
+                      </p>
+                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2 block">
+                          Saran Perawatan
+                        </span>
+                        <ul className="text-xs text-emerald-400 font-medium space-y-1.5 list-disc list-inside">
+                          <li>Gunakan cleanser berbasis BHA (Salicylic Acid).</li>
+                          <li>
+                            Spot treatment di area hidung dengan Niacinamide 5%.
+                          </li>
+                          <li>
+                            Hindari pelembab berat (cream) di area ini, pilih Gel.
+                          </li>
+                        </ul>
+                      </div>
                     </div>
-                    <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">
-                      RAWAT
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
-                    Tekstur pipi cenderung lebih tipis dan sering terpapar
-                    langsung sinar UV, rentan kemerahan dan flek hitam ringan.
-                  </p>
-                  <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2 block">
-                      Saran Perawatan
-                    </span>
-                    <ul className="text-xs text-emerald-400 font-medium space-y-1.5 list-disc list-inside">
-                      <li>
-                        Lapis hidrasi dengan Hyaluronic Acid toner setelah cuci
-                        muka.
-                      </li>
-                      <li>Wajib re-apply Sunscreen SPF 30+ setiap 3 jam.</li>
-                      <li>
-                        Perbaiki tekstur dengan krim Malam (Ceramides/Peptides).
-                      </li>
-                    </ul>
-                  </div>
-                </div>
 
-                {/* Zone 3 */}
-                <div className="p-4 bg-slate-800/50 rounded-2xl border border-emerald-400/20 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
-                  <div className="flex items-start justify-between mb-2">
-                    <div>
-                      <h4 className="font-bold text-emerald-400 uppercase tracking-widest text-xs mb-1">
-                        Chin (Dagu & Rahang)
-                      </h4>
-                      <span className="text-white text-sm font-semibold">
-                        Stagnasi Tekstur Kulit
-                      </span>
+                    {/* Fallback Zone 2 */}
+                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-blue-400/20 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-bold text-blue-400 uppercase tracking-widest text-xs mb-1">
+                            U-Zone (Kedua Pipi)
+                          </h4>
+                          <span className="text-white text-sm font-semibold">
+                            Kapasitas Hidrasi Menurun
+                          </span>
+                        </div>
+                        <span className="bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-[10px] font-bold">
+                          RAWAT
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                        Tekstur pipi cenderung lebih tipis dan sering terpapar
+                        langsung sinar UV, rentan kemerahan dan flek hitam ringan.
+                      </p>
+                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2 block">
+                          Saran Perawatan
+                        </span>
+                        <ul className="text-xs text-emerald-400 font-medium space-y-1.5 list-disc list-inside">
+                          <li>
+                            Lapis hidrasi dengan Hyaluronic Acid toner setelah cuci
+                            muka.
+                          </li>
+                          <li>Wajib re-apply Sunscreen SPF 30+ setiap 3 jam.</li>
+                          <li>
+                            Perbaiki tekstur dengan krim Malam (Ceramides/Peptides).
+                          </li>
+                        </ul>
+                      </div>
                     </div>
-                    <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
-                      STABIL
-                    </span>
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed mb-3">
-                    Sering terjadi penumpukan sel kulit mati dan jerawat
-                    hormonal, butuh regenerasi sel yang halus tanpa friksi
-                    berlebih.
-                  </p>
-                  <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2 block">
-                      Saran Perawatan
-                    </span>
-                    <ul className="text-xs text-emerald-400 font-medium space-y-1.5 list-disc list-inside">
-                      <li>
-                        Eksfoliasi kimiawi ringan (AHA/Glycolic acid &lt; 5%).
-                      </li>
-                      <li>
-                        Hindari ekstraksi komedo tanpa alat steril profesional.
-                      </li>
-                    </ul>
-                  </div>
-                </div>
+
+                    {/* Fallback Zone 3 */}
+                    <div className="p-4 bg-slate-800/50 rounded-2xl border border-emerald-400/20 relative overflow-hidden">
+                      <div className="absolute top-0 left-0 w-1 h-full bg-emerald-500"></div>
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-bold text-emerald-400 uppercase tracking-widest text-xs mb-1">
+                            Chin (Dagu & Rahang)
+                          </h4>
+                          <span className="text-white text-sm font-semibold">
+                            Stagnasi Tekstur Kulit
+                          </span>
+                        </div>
+                        <span className="bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded text-[10px] font-bold">
+                          STABIL
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300 leading-relaxed mb-3">
+                        Sering terjadi penumpukan sel kulit mati dan jerawat
+                        hormonal, butuh regenerasi sel yang halus tanpa friksi
+                        berlebih.
+                      </p>
+                      <div className="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
+                        <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-2 block">
+                          Saran Perawatan
+                        </span>
+                        <ul className="text-xs text-emerald-400 font-medium space-y-1.5 list-disc list-inside">
+                          <li>
+                            Eksfoliasi kimiawi ringan (AHA/Glycolic acid &lt; 5%).
+                          </li>
+                          <li>
+                            Hindari ekstraksi komedo tanpa alat steril profesional.
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <button
                 onClick={() => setShowSkinAnalysisModal(false)}
                 className="w-full mt-6 py-4 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-colors border border-slate-600 shadow-md flex-shrink-0"
               >
-                Tutup Analisis Mendalam
+                {language === 'id' ? 'Tutup Analisis Mendalam' : 'Close Deep Analysis'}
               </button>
             </div>
           </motion.div>
@@ -916,30 +1011,16 @@ export function DashboardView({
             animate={{ scale: 1, opacity: 1 }}
             className="bg-white rounded-2xl p-6 max-w-sm w-full"
           >
-            <h3 className="font-bold text-lg mb-4">Perbandingan Tipe Kulit</h3>
+            <h3 className="font-bold text-lg mb-4">
+              {language === 'id' ? 'Perbandingan Tipe Kulit' : 'Skin Type Comparison'}
+            </h3>
             <div className="space-y-4 mb-6">
               <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl">
                 <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1 block">
-                  Tipe Anda: Oily
+                  {language === 'id' ? 'Tipe Anda:' : 'Your Type:'} {data.skinType.type}
                 </span>
                 <p className="text-sm text-slate-600">
-                  Pori-pori besar, rentan jerawat, kilap di T-Zone.
-                </p>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">
-                  Kering (Dry)
-                </span>
-                <p className="text-sm text-slate-600">
-                  Terasa ketat, bersisik, kurang kelembapan alami.
-                </p>
-              </div>
-              <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">
-                  Kombinasi
-                </span>
-                <p className="text-sm text-slate-600">
-                  Berminyak di T-Zone, namun kering di area pipi.
+                  {data.skinType.description}
                 </p>
               </div>
             </div>
@@ -947,7 +1028,7 @@ export function DashboardView({
               onClick={() => setShowTypeModal(false)}
               className="w-full py-2.5 bg-slate-100 text-slate-700 rounded-xl text-sm font-medium hover:bg-slate-200"
             >
-              Kembali
+              {language === 'id' ? 'Kembali' : 'Back'}
             </button>
           </motion.div>
         </div>
@@ -958,15 +1039,35 @@ export function DashboardView({
          <FaceFeatureModal 
             imageSrc={imageSrc || null} 
             onClose={() => setShowFaceFeatureModal(false)}
-            cachedData={detailedFaceData}
-            onDataFecthed={(data) => setDetailedFaceData(data)}
+            cachedData={detailedFaceData[language] || null} // pass cached data for language
+            onDataFecthed={(data) => setDetailedFaceData(prev => ({ ...prev, [language]: data }))} // store based on language
+            globalData={data}
+            onTryOnAR={onTryOnAR}
          />
+      )}
+
+      {/* Glasses Frame Modal */}
+      {showGlassesModal && (
+        <GlassesFrameModal 
+          data={data}
+          onClose={() => setShowGlassesModal(false)}
+          onTryOnAR={onTryOnAR}
+        />
+      )}
+
+      {/* Color Analysis Modal */}
+      {showColorAnalysisModal && (
+        <ColorAnalysisModal 
+          data={data}
+          imageSrc={imageSrc || null}
+          onClose={() => setShowColorAnalysisModal(false)}
+        />
       )}
 
       {/* Hidden PDF Report Template */}
       <div className="w-0 h-0 overflow-hidden relative">
         <div className="absolute top-[-9999px] left-[-9999px] z-[-9999] bg-white">
-          <PdfReportTemplate data={data} imageSrc={imageSrc} />
+          <PdfReportTemplate data={data} imageSrc={imageSrc} detailedFaceData={detailedFaceData[language] || null} intakeHistory={intakeHistory} />
         </div>
       </div>
     </div>

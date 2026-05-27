@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import * as faceapi from '@vladmandic/face-api';
 import { AppState, AnalysisResult, HistoryItem } from './types';
 import localforage from 'localforage';
+import { useLanguage } from './contexts/LanguageContext';
 
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -23,9 +24,11 @@ import { processImageWithAI } from './mockData';
 export default function App() {
   const [appState, setAppState] = useState<AppState>('upload');
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
+  const [analysisCache, setAnalysisCache] = useState<Record<string, AnalysisResult>>({});
   const [uploadedImageURL, setUploadedImageURL] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
+  const { lang, language, setLanguage } = useLanguage();
 
   useEffect(() => {
     localforage.getItem<HistoryItem[]>('lumina-history').then(data => {
@@ -203,7 +206,7 @@ export default function App() {
     
     try {
       // Panggil fungsi AI prosesor sungguhan
-      const result = await processImageWithAI(file);
+      const result = await processImageWithAI(file, language);
       
       let base64Image = null;
       if (file) {
@@ -213,6 +216,7 @@ export default function App() {
       }
 
       // Simpan hasil dan transisi ke dashboard
+      setAnalysisCache({ [language]: result });
       setAnalysisData(result);
       
       const newHistoryItem: HistoryItem = {
@@ -238,6 +242,7 @@ export default function App() {
 
   const handleReset = () => {
     setAppState('upload');
+    setAnalysisCache({});
     setAnalysisData(null);
     setArModeActive(false);
     // DO NOT revokeObjectURL here anymore because history needs it!
@@ -249,10 +254,42 @@ export default function App() {
   };
   
   const handleSelectHistoryItem = (item: HistoryItem) => {
+    setAnalysisCache({ [language]: item.analysisData });
     setAnalysisData(item.analysisData);
     setUploadedImageURL(item.imageUrl);
     setAppState('results');
   };
+
+  const prevLangRef = useRef(language);
+  
+  useEffect(() => {
+    if (appState === 'results' && uploadedImageURL && prevLangRef.current !== language) {
+      const targetLang = language;
+      if (analysisCache[targetLang]) {
+        setAnalysisData(analysisCache[targetLang]);
+        prevLangRef.current = targetLang;
+      } else {
+        const fetchTranslation = async () => {
+          setAppState('analyzing');
+          try {
+            const response = await fetch(uploadedImageURL);
+            const blob = await response.blob();
+            const file = new File([blob], 'image.jpg', { type: blob.type });
+            const result = await processImageWithAI(file, targetLang);
+            setAnalysisCache(prev => ({ ...prev, [targetLang]: result }));
+            setAnalysisData(result);
+            prevLangRef.current = targetLang;
+          } catch (e) {
+            console.error("Failed to re-translate", e);
+          }
+          setAppState('results');
+        };
+        fetchTranslation();
+      }
+    } else {
+      prevLangRef.current = language;
+    }
+  }, [language, appState, uploadedImageURL, analysisCache]);
 
   return (
     <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
@@ -265,13 +302,28 @@ export default function App() {
               <Sparkles className="text-white w-4 h-4" />
             </div>
             <span className="font-semibold text-xl tracking-tight text-slate-900">
-              Lumina<span className="text-pink-500 underline decoration-2">Aesthetic</span>
+              {lang.headerTitle}<span className="text-pink-500 underline decoration-2">{lang.headerSubtitle}</span>
             </span>
           </div>
-          <nav className="flex gap-4 md:gap-6 text-xs md:text-sm font-medium text-slate-500">
-            <button onClick={handleReset} className={`hover:text-slate-800 transition-colors ${appState !== 'history' ? 'text-pink-600 font-bold' : ''}`}>Analysis</button>
-            <button className="hidden md:block hover:text-slate-800 transition-colors cursor-not-allowed opacity-50">Appointments</button>
-            <button onClick={handleViewHistory} className={`hover:text-slate-800 transition-colors ${appState === 'history' ? 'text-pink-600 font-bold' : ''}`}>History</button>
+          <nav className="flex items-center gap-4 md:gap-6 text-xs md:text-sm font-medium text-slate-500">
+            <button onClick={handleReset} className={`hover:text-slate-800 transition-colors ${appState !== 'history' ? 'text-pink-600 font-bold' : ''}`}>{lang.navAnalysis}</button>
+            <button className="hidden md:block hover:text-slate-800 transition-colors cursor-not-allowed opacity-50">{lang.navAppointments}</button>
+            <button onClick={handleViewHistory} className={`hover:text-slate-800 transition-colors ${appState === 'history' ? 'text-pink-600 font-bold' : ''}`}>{lang.navHistory}</button>
+            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-200">
+              <button 
+                onClick={() => setLanguage('id')} 
+                className={`font-bold transition-colors ${language === 'id' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                ID
+              </button>
+              <span className="text-slate-300">|</span>
+              <button 
+                onClick={() => setLanguage('en')} 
+                className={`font-bold transition-colors ${language === 'en' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-600'}`}
+              >
+                EN
+              </button>
+            </div>
           </nav>
         </header>
 
@@ -292,7 +344,7 @@ export default function App() {
               <section className="w-full md:w-1/3 bg-white rounded-2xl shadow-sm border border-slate-100 p-6 flex flex-col shrink-0 md:overflow-y-auto">
             <h2 className="text-lg font-bold mb-4 flex items-center gap-2 text-slate-900 shrink-0">
               <Sparkles className="w-5 h-5 text-pink-500" />
-              Input Wajah
+              {language === 'id' ? 'Input Wajah' : 'Face Input'}
             </h2>
 
             <div className="flex-1 flex flex-col relative w-full h-full min-h-[400px]">
@@ -468,7 +520,7 @@ export default function App() {
                     className="mt-auto px-6 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-semibold transition-colors text-sm w-full flex items-center justify-center gap-2 shadow-lg shadow-slate-200 shrink-0"
                     data-testid="btn-reset-analysis"
                   >
-                    Mulai Analisis Baru <ArrowRight size={16} />
+                    {language === 'id' ? 'Mulai Analisis Baru' : 'Start New Analysis'} <ArrowRight size={16} />
                   </button>
                 </div>
               )}
@@ -480,8 +532,8 @@ export default function App() {
             {appState !== 'results' ? (
               <div id="dashboard-empty" className="flex-1 flex flex-col items-center justify-center bg-white border border-slate-100 rounded-2xl text-slate-400 opacity-60 p-8 text-center shadow-sm">
                 <Sparkles className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg font-bold text-slate-600">Hasil Analisis Akan Muncul Di Sini</p>
-                <p className="text-sm mt-1">Unggah foto untuk memulai diagnosis AI</p>
+                <p className="text-lg font-bold text-slate-600">{lang.scanResult || 'Hasil Analisis Akan Muncul Di Sini'}</p>
+                <p className="text-sm mt-1">{lang.uploadSubtitle ? (language === 'id' ? 'Unggah foto untuk memulai diagnosis AI' : 'Upload photo to start AI diagnosis') : 'Unggah foto untuk memulai diagnosis AI'}</p>
               </div>
             ) : (
               analysisData && <DashboardView data={analysisData} onReset={handleReset} onTryOnAR={() => setArModeActive(true)} imageSrc={uploadedImageURL} />
@@ -512,7 +564,7 @@ export default function App() {
               onClick={() => setShowChangelog(true)} 
               className="text-[10px] text-pink-500 hover:text-pink-600 font-mono tracking-wider font-bold underline decoration-pink-500/30 underline-offset-2 transition-colors cursor-pointer"
             >
-              v2.3.0 Updates
+              v2.14.0 Updates
             </button>
           </div>
         </footer>

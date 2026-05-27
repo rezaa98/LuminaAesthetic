@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { UploadCloud, Camera, X, CircleDot } from 'lucide-react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface UploadViewProps {
   onUpload: (file: File | null) => void;
@@ -11,6 +12,7 @@ export function UploadView({ onUpload }: UploadViewProps) {
   const [dragActive, setDragActive] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const { lang, language } = useLanguage();
 
   useEffect(() => {
     return () => {
@@ -33,7 +35,7 @@ export function UploadView({ onUpload }: UploadViewProps) {
       setIsCameraOpen(true);
     } catch (err) {
       console.error("Error accessing camera:", err);
-      alert("Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin.");
+      alert(language === 'id' ? "Tidak dapat mengakses kamera. Pastikan Anda telah memberikan izin." : "Cannot access camera. Please ensure you have granted permission.");
     }
   };
 
@@ -125,7 +127,7 @@ export function UploadView({ onUpload }: UploadViewProps) {
           <UploadCloud size={32} strokeWidth={1.5} />
         </div>
         <div className="text-center">
-          <p className="text-slate-700 font-medium mb-1">Unggah foto atau buka kamera</p>
+          <p className="text-slate-700 font-medium mb-1">{lang.uploadTitle || 'Unggah foto atau buka kamera'}</p>
           <p className="text-slate-400 text-xs">PNG, JPG up to 5MB</p>
         </div>
         
@@ -134,7 +136,7 @@ export function UploadView({ onUpload }: UploadViewProps) {
           className="mt-4 bg-pink-500 hover:bg-pink-600 text-white px-6 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-lg shadow-pink-100 w-full"
           data-testid="btn-upload-photo"
         >
-          Pilih Foto
+          {lang.browseText || 'Pilih Foto'}
         </button>
         <input 
           type="file" 
@@ -153,10 +155,10 @@ export function UploadView({ onUpload }: UploadViewProps) {
           data-testid="btn-camera-capture"
         >
           <Camera size={18} className="text-slate-500" />
-          Gunakan Kamera Sistem
+          {language === 'id' ? 'Gunakan Kamera Sistem' : 'Use System Camera'}
         </button>
         <p className="text-[10px] text-slate-400 text-center uppercase tracking-widest leading-relaxed mt-2">
-          Privasi Terjamin &bull; Keamanan Tingkat Medis
+          {language === 'id' ? 'Privasi Terjamin \u2022 Keamanan Tingkat Medis' : 'Privacy Guaranteed \u2022 Medical Grade Security'}
         </p>
       </div>
     </div>

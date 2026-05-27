@@ -2,6 +2,7 @@ import { HistoryItem } from '../types';
 import { Clock, Image as ImageIcon, ChevronRight, SplitSquareHorizontal, Filter } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 interface HistoryViewProps {
   history: HistoryItem[];
@@ -10,6 +11,7 @@ interface HistoryViewProps {
 }
 
 export const HistoryView = ({ history, onSelect, onBack }: HistoryViewProps) => {
+  const { lang, language } = useLanguage();
   const [minHydration, setMinHydration] = useState<number>(0);
   const [skinTypeFilter, setSkinTypeFilter] = useState<string>('Semua');
   const [compareMode, setCompareMode] = useState<boolean>(false);
@@ -82,7 +84,7 @@ export const HistoryView = ({ history, onSelect, onBack }: HistoryViewProps) => 
             </div>
             <div className="p-4 bg-white rounded-xl shadow-sm">
               <p className="font-bold text-slate-800">Skor Permukaan</p>
-              <p className="text-sm text-slate-600">{item1.analysisData.skinAnalysis.texture}% (Tekstur), {item1.analysisData.skinAnalysis.pores}% (Pori-pori)</p>
+              <p className="text-sm text-slate-600">{(item1.analysisData.skinAnalysis.texture ?? 80)}% (Tekstur), {(item1.analysisData.skinAnalysis.pores ?? 85)}% (Pori-pori)</p>
             </div>
           </div>
           <div className="flex-1 flex flex-col gap-4">
@@ -103,7 +105,7 @@ export const HistoryView = ({ history, onSelect, onBack }: HistoryViewProps) => 
             </div>
             <div className="p-4 bg-white rounded-xl shadow-sm">
               <p className="font-bold text-slate-800">Skor Permukaan</p>
-              <p className="text-sm text-slate-600">{item2.analysisData.skinAnalysis.texture}% (Tekstur), {item2.analysisData.skinAnalysis.pores}% (Pori-pori)</p>
+              <p className="text-sm text-slate-600">{(item2.analysisData.skinAnalysis.texture ?? 80)}% (Tekstur), {(item2.analysisData.skinAnalysis.pores ?? 85)}% (Pori-pori)</p>
             </div>
           </div>
         </div>
@@ -116,7 +118,7 @@ export const HistoryView = ({ history, onSelect, onBack }: HistoryViewProps) => 
       <div className="p-6 border-b border-slate-100 flex items-center justify-between">
         <h2 className="text-xl font-bold flex items-center gap-2 text-slate-800">
           <Clock className="w-5 h-5 text-pink-500" />
-          Riwayat Analisis
+          {lang.historyTitle || 'Riwayat Analisis'}
         </h2>
         <div className="flex items-center gap-3">
           <button 
@@ -126,13 +128,13 @@ export const HistoryView = ({ history, onSelect, onBack }: HistoryViewProps) => 
             }}
             className={`text-sm font-semibold px-3 py-1.5 rounded-lg transition-colors border ${compareMode ? 'bg-pink-50 text-pink-600 border-pink-200' : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'}`}
           >
-            Bandingkan
+            {language === 'id' ? 'Bandingkan' : 'Compare'}
           </button>
           <button 
             onClick={onBack}
             className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors px-3 py-1.5"
           >
-            Kembali
+            {lang.backToScanner || 'Kembali'}
           </button>
         </div>
       </div>
@@ -189,8 +191,8 @@ export const HistoryView = ({ history, onSelect, onBack }: HistoryViewProps) => 
         {filteredHistory.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
             <Clock className="w-16 h-16 mb-4 opacity-50" />
-            <p className="font-bold text-lg text-slate-600">Belum ada riwayat</p>
-            <p className="text-sm">Riwayat analisis wajah akan muncul di sini.</p>
+            <p className="font-bold text-lg text-slate-600">{lang.noHistoryTitle || 'Belum ada riwayat'}</p>
+            <p className="text-sm">{lang.noHistoryDesc || 'Riwayat analisis wajah akan muncul di sini.'}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
