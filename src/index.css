@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+}
+
 @theme {
   --animate-scan: scan 3s ease-in-out infinite;
   --animate-shimmer: shimmer 3s infinite linear;

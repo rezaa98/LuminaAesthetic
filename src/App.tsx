@@ -5,6 +5,7 @@ import * as faceapi from '@vladmandic/face-api';
 import { AppState, AnalysisResult, HistoryItem, User, AuditLog, UserRole } from './types';
 import localforage from 'localforage';
 import { useLanguage } from './contexts/LanguageContext';
+import { auth, db, onAuthStateChanged, collection, query, where, onSnapshot, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, orderBy, signOut } from './firebase';
 
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -38,65 +39,130 @@ export default function App() {
 
   // Load User Session & History On Mount
   useEffect(() => {
-    const savedUser = localStorage.getItem('lumina-active-user');
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        setCurrentUser(parsed);
-        setAppState('upload');
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as User;
+            let currentRole = userData.role;
+            
+            // Auto-grant super_admin to reza.yusuf98@gmail.com
+            if (firebaseUser.email === 'reza.yusuf98@gmail.com' && currentRole !== 'super_admin') {
+               currentRole = 'super_admin';
+               await updateDoc(doc(db, 'users', firebaseUser.uid), { role: 'super_admin' });
+               userData.role = 'super_admin';
+            }
 
-    localforage.getItem<HistoryItem[]>('lumina-history').then(data => {
-      if (data) {
-        setHistory(data);
+            setCurrentUser({ id: userDoc.id, ...userData });
+            if (currentRole === 'admin' || currentRole === 'super_admin') {
+               setAppState('admin');
+            } else {
+               setAppState('upload');
+            }
+          } else {
+            // New user via Google Login, default role to user
+            const role = firebaseUser.email === 'reza.yusuf98@gmail.com' ? 'super_admin' : 'user';
+            const newUser: User = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || firebaseUser.email || 'User',
+              username: firebaseUser.email?.split('@')[0] || 'user',
+              role,
+              createdAt: Date.now().toString()
+            };
+            await setDoc(doc(db, 'users', firebaseUser.uid), {
+             name: newUser.name,
+             username: newUser.username,
+             role: newUser.role,
+             createdAt: Date.now()
+            });
+            setCurrentUser(newUser);
+            if (role === 'admin' || role === 'super_admin') {
+               setAppState('admin');
+            } else {
+               setAppState('upload');
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching user profile:', e);
+        }
+      } else {
+        setCurrentUser(null);
+        if (appState !== 'landing' && appState !== 'login') {
+            setAppState('landing');
+        }
       }
     });
+
+    return () => unsubscribeAuth();
   }, []);
 
+  useEffect(() => {
+    if (!currentUser) {
+        setHistory([]);
+        return;
+    }
+
+    const historyRef = collection(db, 'history');
+    const q = (currentUser.role === 'admin' || currentUser.role === 'super_admin') 
+              ? query(historyRef, orderBy('timestamp', 'desc'))
+              : query(historyRef, where('userId', '==', currentUser.id));
+
+    const unsubscribeHistory = onSnapshot(q, (snapshot) => {
+      let historyData: HistoryItem[] = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as HistoryItem[];
+      
+      // Sort in memory for users without composite index
+      if (currentUser.role !== 'admin' && currentUser.role !== 'super_admin') {
+        historyData.sort((a, b) => b.timestamp - a.timestamp);
+      }
+      setHistory(historyData);
+    }, (error) => {
+      console.error('Error fetching history:', error);
+    });
+
+    return () => unsubscribeHistory();
+  }, [currentUser]);
+
   // Sync session and handle audit tracking
-  const handleAddAuditLog = (action: string, details?: string) => {
-    const newLog: AuditLog = {
-      id: `audit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      timestamp: new Date().toISOString(),
-      userId: currentUser?.id || 'guest',
-      username: currentUser?.username || 'guest',
-      role: currentUser?.role || 'user',
-      action,
-      details: details || ''
-    };
-    const savedLogsRaw = localStorage.getItem('lumina-audit-logs') || '[]';
-    const savedLogs: AuditLog[] = JSON.parse(savedLogsRaw);
-    savedLogs.push(newLog);
-    localStorage.setItem('lumina-audit-logs', JSON.stringify(savedLogs));
-  };
+  const handleAddAuditLog = async (action: string, details?: string) => {
+    if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'super_admin')) return;
 
-  const handleSaveConsultantNotes = (scanId: string, notes: string) => {
-    setHistory(prev => {
-      const updated = prev.map(item => {
-        if (item.id === scanId) {
-          return {
-            ...item,
-            consultantNotes: notes,
-            consultantName: currentUser?.name || 'Dr. Lumina'
-          };
-        }
-        return item;
+    try {
+      await addDoc(collection(db, 'audit_logs'), {
+        timestamp: Date.now(),
+        userId: currentUser.id,
+        username: currentUser.username,
+        role: currentUser.role,
+        action,
+        details: details || ''
       });
-      localforage.setItem('lumina-history', updated);
-      return updated;
-    });
+    } catch (e) {
+      console.error('Error adding audit log:', e);
+    }
   };
 
-  const handleDeleteHistoryItem = (scanId: string) => {
-    setHistory(prev => {
-      const updated = prev.filter(item => item.id !== scanId);
-      localforage.setItem('lumina-history', updated);
-      return updated;
-    });
-    handleAddAuditLog('Hapus Record Medis', `Super Admin menghapus seluruh berkas pemeriksaan diagnosis ID: ${scanId}`);
+  const handleSaveConsultantNotes = async (scanId: string, notes: string) => {
+    try {
+      await updateDoc(doc(db, 'history', scanId), {
+        consultantNotes: notes,
+        consultantName: currentUser?.name || 'Consultant'
+      });
+      // The local state will update via the onSnapshot listener from Firestore
+    } catch (e) {
+        console.error('Error saving notes:', e);
+    }
+  };
+
+  const handleDeleteHistoryItem = async (scanId: string) => {
+     try {
+       await deleteDoc(doc(db, 'history', scanId));
+       handleAddAuditLog('Delete Record', `Admin deleted history record ID: ${scanId}`);
+     } catch (e) {
+       console.error('Error deleting record:', e);
+     }
   };
 
   // Filter history: regular users see their own scans only, admins/super admins see everything,
@@ -288,22 +354,16 @@ export default function App() {
       setAnalysisCache({ [language]: result });
       setAnalysisData(result);
       
-      const newHistoryItem: HistoryItem = {
-        id: Date.now().toString(),
-        timestamp: new Date(),
+      const historyRef = collection(db, 'history');
+      const docRef = await addDoc(historyRef, {
+        timestamp: Date.now(),
         imageUrl: base64Image,
         analysisData: result,
         userId: currentUser?.id || 'guest',
         userDisplayName: currentUser?.name || 'Tamu Estetika'
-      };
-      
-      setHistory(prev => {
-        const next = [newHistoryItem, ...prev];
-        localforage.setItem('lumina-history', next);
-        return next;
       });
-
-      setActiveScanId(newHistoryItem.id);
+      
+      setActiveScanId(docRef.id);
 
       // Audit Logger Activity
       handleAddAuditLog('Scan Wajah AI', `Melakukan scan digital mandiri; Tipe Kulit: ${result.skinType.type}, Hidrasi: ${result.skinAnalysis.hydration}%`);
@@ -377,27 +437,27 @@ export default function App() {
     return (
       <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
         <div className="min-h-[100dvh] md:h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl relative bg-white">
-          <header className="h-16 bg-white border-b border-slate-200/60 px-8 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
-                <Sparkles className="text-white w-4 h-4" />
+          <header className="h-16 bg-white border-b border-slate-200/60 px-4 md:px-8 flex items-center justify-between shrink-0 gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-7 h-7 md:w-8 md:h-8 bg-pink-500 rounded-lg flex items-center justify-center shrink-0">
+                <Sparkles className="text-white w-3.5 h-3.5 md:w-4 md:h-4" />
               </div>
-              <span className="font-extrabold text-lg tracking-tight text-slate-900">
-                Lumina<span className="text-pink-500 underline decoration-2">Aesthetic</span>
+              <span className="font-extrabold text-[15px] md:text-lg tracking-tight text-slate-900 flex shrink-0">
+                Lumina<span className="text-pink-500 underline decoration-2 hidden sm:inline">Aesthetic</span>
               </span>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+              <div className="flex items-center gap-1.5 md:gap-2">
                 <button 
                   onClick={() => setLanguage('id')} 
-                  className={`font-semibold text-xs transition-colors ${language === 'id' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-500'}`}
+                  className={`font-semibold text-[10px] sm:text-xs transition-colors ${language === 'id' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-500'}`}
                 >
                   ID
                 </button>
-                <span className="text-slate-300">|</span>
+                <span className="text-slate-300 text-[10px] sm:text-xs">|</span>
                 <button 
                   onClick={() => setLanguage('en')} 
-                  className={`font-semibold text-xs transition-colors ${language === 'en' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-500'}`}
+                  className={`font-semibold text-[10px] sm:text-xs transition-colors ${language === 'en' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-500'}`}
                 >
                   EN
                 </button>
@@ -408,11 +468,11 @@ export default function App() {
                   setActiveRolePreset(undefined);
                   setAppState('login');
                 }}
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider rounded-xl transition-colors shadow-md flex items-center gap-1.5"
+                className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg sm:rounded-xl transition-colors shadow-md flex items-center gap-1.5 whitespace-nowrap"
                 id="btn-landing-login-topbar"
               >
-                <LogIn className="w-3.5 h-3.5" />
-                {language === 'id' ? 'Masuk' : 'Sign In'}
+                <LogIn className="w-3.5 h-3.5 hidden sm:inline-block" />
+                <span>{language === 'id' ? 'Masuk' : 'Sign In'}</span>
               </button>
             </div>
           </header>
@@ -459,8 +519,8 @@ export default function App() {
       <div className="min-h-[100dvh] md:h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl">
         
         {/* Header */}
-        <header className="h-16 bg-white border-b border-slate-200 px-8 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2">
+        <header className="h-auto md:h-16 bg-white border-b border-slate-200 px-4 md:px-8 py-3 md:py-0 flex flex-col md:flex-row items-center justify-between shrink-0 gap-3 md:gap-0">
+          <div className="flex items-center gap-2 shrink-0">
             <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
               <Sparkles className="text-white w-4 h-4" />
             </div>
@@ -468,12 +528,12 @@ export default function App() {
               {lang.headerTitle}<span className="text-pink-500 underline decoration-2">{lang.headerSubtitle}</span>
             </span>
           </div>
-          <nav className="flex items-center gap-4 md:gap-6 text-xs md:text-sm font-medium text-slate-500">
+          <nav className="flex items-center justify-center md:justify-end gap-3 md:gap-6 text-xs md:text-sm font-medium text-slate-500 w-full overflow-x-auto hide-scrollbar pb-1 md:pb-0">
             
             {currentUser && (currentUser.role === 'admin' || currentUser.role === 'super_admin') && (
               <button 
                 onClick={() => setAppState('admin')} 
-                className={`font-black uppercase tracking-tight pb-1 border-b-2 transition-all flex items-center gap-1 ${appState === 'admin' ? 'text-indigo-600 border-indigo-505 border-indigo-500' : 'text-indigo-400 border-transparent hover:text-indigo-650 hover:text-indigo-600'}`}
+                className={`font-black uppercase tracking-tight pb-1 border-b-2 whitespace-nowrap transition-all flex items-center gap-1 shrink-0 ${appState === 'admin' ? 'text-indigo-600 border-indigo-505 border-indigo-500' : 'text-indigo-400 border-transparent hover:text-indigo-650 hover:text-indigo-600'}`}
                 id="btn-header-admin-portal"
               >
                 <Shield className="w-3.5 h-3.5 text-indigo-500 animate-pulse" />
@@ -481,11 +541,11 @@ export default function App() {
               </button>
             )}
 
-            <button onClick={handleReset} className={`hover:text-slate-800 transition-colors ${appState !== 'history' && appState !== 'admin' ? 'text-pink-600 font-bold' : ''}`}>{lang.navAnalysis}</button>
-            <button className="hidden md:block hover:text-slate-800 transition-colors cursor-not-allowed opacity-50">{lang.navAppointments}</button>
-            <button onClick={handleViewHistory} className={`hover:text-slate-800 transition-colors ${appState === 'history' ? 'text-pink-600 font-bold' : ''}`}>{lang.navHistory}</button>
+            <button onClick={handleReset} className={`hover:text-slate-800 shrink-0 whitespace-nowrap transition-colors ${appState !== 'history' && appState !== 'admin' ? 'text-pink-600 font-bold' : ''}`}>{lang.navAnalysis}</button>
+            <button className="hidden md:block hover:text-slate-800 transition-colors cursor-not-allowed opacity-50 shrink-0">{lang.navAppointments}</button>
+            <button onClick={handleViewHistory} className={`hover:text-slate-800 shrink-0 whitespace-nowrap transition-colors ${appState === 'history' ? 'text-pink-600 font-bold' : ''}`}>{lang.navHistory}</button>
             
-            <div className="flex items-center gap-2 ml-4 pl-4 border-l border-slate-200">
+            <div className="flex items-center gap-2 ml-2 md:ml-4 pl-2 md:pl-4 border-l border-slate-200 shrink-0">
               <button 
                 onClick={() => setLanguage('id')} 
                 className={`font-bold transition-colors ${language === 'id' ? 'text-pink-600' : 'text-slate-400 hover:text-slate-600'}`}
@@ -502,14 +562,14 @@ export default function App() {
             </div>
 
             {/* Logout Trigger button inside clinical ecosystem */}
-            <div className="flex items-center gap-2 border-l border-slate-200 pl-4 ml-2">
-              <span className="text-[10px] font-mono whitespace-nowrap hidden sm:inline-block font-black uppercase text-slate-400 bg-slate-50 px-2 py-1 border border-slate-200 rounded leading-none">
+            <div className="flex items-center gap-2 border-l border-slate-200 pl-2 md:pl-4 shrink-0">
+              <span className="text-[10px] font-mono whitespace-nowrap font-black uppercase text-slate-400 bg-slate-50 px-2 py-1 border border-slate-200 rounded leading-none hidden sm:block">
                 {currentUser?.name ? currentUser.name.split(' ')[0] : 'Guest'}
               </span>
               <button
-                onClick={() => {
+                onClick={async () => {
                   handleAddAuditLog('Logout Sistem', 'Pengguna mereset sesi aktif dan keluar ke gerbang utama');
-                  localStorage.removeItem('lumina-active-user');
+                  await signOut(auth);
                   setCurrentUser(null);
                   setAppState('landing');
                 }}

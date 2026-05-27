@@ -22,7 +22,7 @@ export interface AuditLog {
 
 export interface HistoryItem {
   id: string;
-  timestamp: Date;
+  timestamp: number;
   imageUrl: string | null;
   analysisData: AnalysisResult;
   userId?: string;

@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile containing name and role boundaries.",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "username": { "type": "string" },
+        "role": { "type": "string", "enum": ["super_admin", "admin", "user"] },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "role", "createdAt"]
+    },
+    "HistoryItem": {
+      "title": "HistoryItem",
+      "description": "Stores an individual face feature analysis scan.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "number" },
+        "imageUrl": { "type": "string" },
+        "analysisData": { "type": "object" },
+        "userId": { "type": "string" },
+        "userDisplayName": { "type": "string" },
+        "consultantNotes": { "type": "string" },
+        "consultantName": { "type": "string" }
+      },
+      "required": ["timestamp", "analysisData"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "System audit logs for tracking actions by admins and super_admins.",
+      "type": "object",
+      "properties": {
+        "timestamp": { "type": "number" },
+        "userId": { "type": "string" },
+        "username": { "type": "string" },
+        "role": { "type": "string" },
+        "action": { "type": "string" },
+        "details": { "type": "string" }
+      },
+      "required": ["timestamp", "userId", "username", "role", "action"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "User",
+      "description": "Stores user profiles including their roles. Document ID should be the Firebase Auth UID."
+    },
+    "history/{historyId}": {
+      "schema": "HistoryItem",
+      "description": "Stores all analyses. Either bound to a userId or anonymous."
+    },
+    "audit_logs/{auditId}": {
+      "schema": "AuditLog",
+      "description": "Stores audit trailing for admin actions."
+    }
+  }
+}

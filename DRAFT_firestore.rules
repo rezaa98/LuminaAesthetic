@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} { allow read, write: if false; }
+
+    function isSignedIn() { return request.auth != null; }
+    function existing() { return resource.data; }
+    function incoming() { return request.resource.data; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    
+    // Bootstrapped Admin
+    function isSuperAdminUser() { return isSignedIn() && request.auth.token.email_verified == true && request.auth.token.email == 'reza.yusuf98@gmail.com'; }
+    function isSuperAdminRole() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'; }
+    function isSuperAdmin() { return isSuperAdminUser() || isSuperAdminRole(); }
+    
+    function isAdminRole() { return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['super_admin', 'admin']; }
+    function isAdmin() { return isSuperAdminUser() || isAdminRole(); }
+
+    function isValidUser(data) {
+        return data.keys().hasAll(['name', 'role', 'createdAt']) &&
+               data.keys().size() <= 5 &&
+               data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+               data.role is string && data.role in ['user', 'admin', 'super_admin'] &&
+               data.createdAt is number &&
+               (!('username' in data) || data.get('username', '') is string);
+    }
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isSignedIn() && isAdmin();
+      
+      allow create: if isValidId(userId) && isSignedIn() && request.auth.uid == userId && 
+                    isValidUser(incoming()) && 
+                    (incoming().role == 'user' || isSuperAdminUser());
+                    
+      allow update: if isValidId(userId) && isSignedIn() && 
+                    isValidUser(incoming()) && 
+                    incoming().createdAt == existing().createdAt &&
+                    (
+                      // User updating their own profile (cannot change role)
+                      (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'username']) && incoming().role == existing().role) ||
+                      // Super admin updating someone's role
+                      (isSuperAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'name', 'username']))
+                    );
+    }
+    
+    function isValidHistoryItem(data) {
+        return data.keys().hasAll(['timestamp', 'analysisData']) &&
+               data.keys().size() <= 8 &&
+               data.timestamp is number &&
+               data.analysisData is map &&
+               (!('imageUrl' in data) || data.imageUrl == null || data.imageUrl is string) &&
+               (!('userId' in data) || data.userId is string) &&
+               (!('userDisplayName' in data) || data.userDisplayName is string) &&
+               (!('consultantNotes' in data) || data.consultantNotes is string) &&
+               (!('consultantName' in data) || data.consultantName is string);
+    }
+
+    match /history/{historyId} {
+       // Only owner or admin can get and list
+       allow get: if isValidId(historyId) && isSignedIn() && (existing().userId == request.auth.uid || isAdmin());
+       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+       
+       allow create: if isValidId(historyId) && isSignedIn() && 
+                     isValidHistoryItem(incoming()) && 
+                     (!('userId' in incoming()) || incoming().userId == request.auth.uid);
+                     
+       allow update: if isValidId(historyId) && isSignedIn() && 
+                     isValidHistoryItem(incoming()) && 
+                     incoming().timestamp == existing().timestamp &&
+                     (
+                        // User can only update their own items if needed? But no updates should be allowed for history unless admin 
+                        (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['consultantNotes', 'consultantName', 'analysisData', 'imageUrl']))
+                     );
+
+       allow delete: if isValidId(historyId) && isSignedIn() && (isSuperAdmin() || existing().userId == request.auth.uid);
+    }
+    
+    function isValidAuditLog(data) {
+        return data.keys().hasAll(['timestamp', 'userId', 'username', 'role', 'action']) &&
+               data.keys().size() <= 6 &&
+               data.timestamp is number &&
+               data.userId is string && data.userId.size() > 0 &&
+               data.username is string &&
+               data.role is string &&
+               data.action is string && data.action.size() > 0 &&
+               (!('details' in data) || data.details is string);
+    }
+
+    match /audit_logs/{auditId} {
+       allow read: if isSignedIn() && isAdmin();
+       allow create: if isValidId(auditId) && isSignedIn() && isAdmin() && 
+                     isValidAuditLog(incoming()) && 
+                     incoming().userId == request.auth.uid;
+       allow update, delete: if false; // audit logs should be write-once
+    }
+  }
+}

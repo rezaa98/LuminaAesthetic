@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, Shield, Compass, Palette, Heart, Users, ArrowRight, ArrowUpRight, CheckCircle2, UserCheck, Activity, Award, Glasses, FileText } from 'lucide-react';
+import { Sparkles, Shield, Compass, Palette, Heart, Users, ArrowRight, ArrowUpRight, CheckCircle2, Activity, Award, Glasses, FileText } from 'lucide-react';
 import { UserRole } from '../types';
 
 import { FaceShapeQuiz } from './FaceShapeQuiz';
@@ -51,24 +51,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpen
       icon: <Shield className="w-6 h-6 text-amber-500" />,
       title: isEn ? 'Expert Clinic Integration' : 'Integrasi Spesialis Estetika',
       desc: isEn ? 'Direct annotation capabilities where certified medical consultants review AI charts and write bespoke notes.' : 'Kemampuan anotasi rujukan di mana konsultan kecantikan bersertifikat meninjau bagan dan menyertakan saran resep aktual.'
-    }
-  ];
-
-  const roleShowcase = [
-    {
-      role: 'super_admin' as UserRole,
-      title: isEn ? 'Super Admin Panel' : 'Super Admin (Dr. Lumina)',
-      desc: isEn ? 'Access system statistics, review database audits, promotion panel, and adjust role access.' : 'Akses dashboard statistik klinik, audit jejak keamanan, manajemen promosi status, dan penetapan role.'
-    },
-    {
-      role: 'admin' as UserRole,
-      title: isEn ? 'Consultant Dashboard' : 'Konsultan Estetika (Nurse)',
-      desc: isEn ? 'Audit patient scanning history, review AI outputs, and append custom clinical advice annotations directly.' : 'Menyortir direktori riwayat pasien, memverifikasi hasil foto AI, dan menyertakan anotasi resep rujukan.'
-    },
-    {
-      role: 'user' as UserRole,
-      title: isEn ? 'Standard Client View' : 'Klien Utama (Pengguna Biasa)',
-      desc: isEn ? 'Upload selfie, track continuous water hydration, run simulated try-ons, and download high-contrast PDF reports.' : 'Unggah swafoto, melacak asupan air harian, simulasi AR kacamata, dan mengunduh laporan PDF A3 resmi.'
     }
   ];
 
@@ -223,46 +205,70 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpen
          <FaceShapeQuiz language={language} />
       </section>
 
-      {/* Active Roles & Audit Ledger Access */}
-      <section className="px-6 py-12 bg-indigo-950 text-white rounded-3xl max-w-4xl mx-auto w-11/12 sm:w-full shrink-0 relative overflow-hidden shadow-2xl">
+      {/* Example Results Showcase */}
+      <section className="px-6 py-12 bg-slate-900 text-white rounded-3xl max-w-4xl mx-auto w-11/12 sm:w-full shrink-0 relative overflow-hidden shadow-2xl mb-12">
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-pink-500/10 blur-3xl pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
 
         <div className="text-center mb-10 relative z-10">
-          <Award className="w-8 h-8 text-pink-400 mx-auto mb-2 animate-bounce" />
-          <h2 className="text-2xl font-black tracking-tight text-white">
-            {isEn ? 'Role-Based Client Management' : 'Sistem Kontrol Akses & Peran'}
+          <Glasses className="w-8 h-8 text-pink-400 mx-auto mb-2" />
+          <h2 className="text-2xl font-black tracking-tight text-white mb-2">
+            {isEn ? 'AI Analysis Precision' : 'Presisi Analisis AI'}
           </h2>
-          <p className="text-xs text-indigo-300 mt-1 max-w-md mx-auto">
+          <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
             {isEn 
-              ? 'Lumina implements Role-Based Access Control (RBAC). Select a clinic profile below to test with pre-configured logs instantly.'
-              : 'Lumina menerapkan sistem RBAC. Klik salah satu preset dibawah ini untuk langsung menguji fungsi analisis dan panel koordinasi.'}
+              ? 'Lumina processes your facial topology in real-time, matching exact proportions to frames that elevate your symmetry securely and accurately.'
+              : 'Lumina memproses topologi wajah Anda secara real-time, mencocokkan proporsi asli untuk menghasilkan rekomendasi bentuk kacamata yang presisi.'}
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 relative z-10">
-          {roleShowcase.map((roleInfo, idx) => (
-            <div 
-              key={idx} 
-              onClick={() => onOpenLogIn(roleInfo.role)}
-              className="p-5 bg-white/5 hover:bg-white/10 active:scale-[0.98] transition-all cursor-pointer rounded-2xl border border-white/10 flex flex-col justify-between h-full"
-            >
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-[9px] font-black uppercase bg-pink-500/20 text-pink-300 px-2 py-0.5 rounded border border-pink-500/30">
-                    {roleInfo.role.replace('_', ' ')}
-                  </span>
-                  <UserCheck className="w-4 h-4 text-pink-400" />
-                </div>
-                <h3 className="font-extrabold text-white text-sm mb-1">{roleInfo.title}</h3>
-                <p className="text-[10px] text-indigo-200 leading-normal font-semibold mb-4">{roleInfo.desc}</p>
-              </div>
-              <span className="text-[10.5px] font-black text-pink-300 flex items-center gap-1 group mt-auto pt-2 border-t border-white/5">
-                {isEn ? 'Launch Presets' : 'Buka Demo Preset'}
-                <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-              </span>
+        <div className="grid md:grid-cols-2 gap-6 relative z-10">
+          {/* Mock Face Analysis Card */}
+          <div className="p-5 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center">
+            <div className="w-full aspect-square rounded-xl bg-slate-800 flex items-center justify-center mb-4 relative overflow-hidden border border-slate-700">
+               <div className="absolute inset-0 bg-blue-500/20 z-0"></div>
+               {/* Decorative grid */}
+               <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '15px 15px'}}></div>
+               <div className="relative z-10 p-4 w-2/3 h-2/3 border-[1.5px] border-dashed border-pink-400/70 rounded-[2rem] flex items-center justify-center shadow-[0_0_15px_rgba(236,72,153,0.2)]">
+                  <div className="w-1.5 h-1.5 rounded-full bg-pink-400 absolute top-0 -translate-y-1/2"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-pink-400 absolute bottom-0 translate-y-1/2"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 absolute left-0 -translate-x-1/2"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 absolute right-0 translate-x-1/2"></div>
+                  <Activity className="w-8 h-8 text-white/30" />
+               </div>
             </div>
-          ))}
+            <h3 className="font-extrabold text-white text-sm mb-1">{isEn ? 'Topology Scan' : 'Pemindaian Topologi'}</h3>
+            <p className="text-[10px] text-slate-400 text-center font-medium leading-relaxed">
+              {isEn ? 'Maps 120 structural points automatically to analyze proportions, width, and localized features contextually.' : 'Secara otomatis memetakan 120 titik struktural untuk menganalisa proporsi rahang, tulang pipi, dan lebar dahi.'}
+            </p>
+          </div>
+
+          {/* Mock Glasses Frame Card */}
+          <div className="p-5 bg-white/5 rounded-2xl border border-white/10 flex flex-col items-center">
+            <div className="w-full aspect-square rounded-xl bg-slate-800 flex items-center justify-center mb-4 relative overflow-hidden border border-slate-700">
+               <div className="absolute inset-0 bg-indigo-500/20 z-0"></div>
+               {/* Decorative grid */}
+               <div className="absolute inset-0" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '15px 15px'}}></div>
+               
+               {/* Abstract Glasses representation */}
+               <div className="relative z-10 flex items-center gap-1.5 scale-125">
+                 <div className="w-12 h-10 border-2 border-white/80 rounded-[0.7rem] relative overflow-hidden backdrop-blur-sm bg-white/5 shadow-xl">
+                    <span className="w-full h-full bg-gradient-to-tr from-white/10 to-transparent absolute inset-0"></span>
+                 </div>
+                 <div className="w-3 h-0.5 bg-white/60 rounded-full"></div>
+                 <div className="w-12 h-10 border-2 border-white/80 rounded-[0.7rem] relative overflow-hidden backdrop-blur-sm bg-white/5 shadow-xl">
+                    <span className="w-full h-full bg-gradient-to-tr from-white/10 to-transparent absolute inset-0"></span>
+                 </div>
+               </div>
+               <div className="absolute bottom-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-[9px] font-black tracking-widest uppercase shadow-sm">
+                 98.2% Match Frame
+               </div>
+            </div>
+            <h3 className="font-extrabold text-white text-sm mb-1">{isEn ? 'Virtual Frame Match' : 'Kecocokan Frame Pintar'}</h3>
+            <p className="text-[10px] text-slate-400 text-center font-medium leading-relaxed">
+              {isEn ? 'AI filters frame styles that beautifully complement jaw lines, bridging measurements directly for Live Try-On.' : 'AI memfilter model bentuk kacamata yang menyeimbangkan bentuk wajah Anda untuk pengalaman Live Try-On optimal.'}
+            </p>
+          </div>
         </div>
       </section>
 

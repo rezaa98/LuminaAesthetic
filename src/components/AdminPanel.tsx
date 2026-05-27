@@ -22,6 +22,8 @@ import * as htmlToImage from 'html-to-image';
 import jsPDF from 'jspdf';
 import { PdfReportTemplate } from './PdfReportTemplate';
 
+import { collection, onSnapshot, query, orderBy, updateDoc, doc } from '../firebase';
+
 interface AdminPanelProps {
   currentUser: User;
   history: HistoryItem[];
@@ -43,7 +45,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const isSuper = currentUser.role === 'super_admin';
   const [activeTab, setActiveTab] = useState<'directory' | 'users' | 'audits'>('directory');
   
-  // Local reactive states loaded from localStorage
+  // Local reactive states loaded from Firebase
   const [userList, setUserList] = useState<User[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [editingScanId, setEditingScanId] = useState<string | null>(null);
@@ -62,76 +64,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
   // Hydrate Data on Mount
   useEffect(() => {
-    // Standard static base accounts
-    const initialPresets: User[] = [
-      { id: 'super-admin-01', name: 'Dr. Clara Lumina', username: 'superadmin', role: 'super_admin', createdAt: '2026-01-01T00:00:00Z' },
-      { id: 'admin-01', name: 'Nurse Amelia', username: 'consultant', role: 'admin', createdAt: '2026-03-15T00:00:00Z' },
-      { id: 'client-clara', name: 'Clara Rosabella', username: 'client', role: 'user', createdAt: '2026-05-10T00:00:00Z' }
-    ];
+    // Load Users
+    import('../firebase').then(({ db, collection, onSnapshot, query, orderBy }) => {
+       const userUnsub = onSnapshot(collection(db, 'users'), snapshot => {
+         const users: User[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+         setUserList(users);
+       });
+       
+       const auditUnsub = onSnapshot(query(collection(db, 'audit_logs'), orderBy('timestamp', 'asc')), snapshot => {
+         const logs: AuditLog[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
+         setAuditLogs(logs);
+       });
 
-    const savedCustomUsersRaw = localStorage.getItem('lumina-custom-users') || '[]';
-    const savedCustomUsers: User[] = JSON.parse(savedCustomUsersRaw);
-    
-    // Merge Presets and Custom Users
-    const combined = [...initialPresets];
-    savedCustomUsers.forEach(cu => {
-      if (!combined.some(u => u.username === cu.username)) {
-        combined.push(cu);
-      }
+       return () => {
+         userUnsub();
+         auditUnsub();
+       };
     });
-    setUserList(combined);
-
-    // Load Audit Logs
-    const loadedLogsRaw = localStorage.getItem('lumina-audit-logs') || '[]';
-    const loadedLogs: AuditLog[] = JSON.parse(loadedLogsRaw);
-    
-    // If empty audits, seed default ones
-    if (loadedLogs.length === 0) {
-      const defaultAudits: AuditLog[] = [
-        { id: 'seed-1', timestamp: new Date(2026, 4, 11).toISOString(), userId: 'client-clara', username: 'client', role: 'user', action: 'Scan Face AI', details: 'Scanning wajah frontal, hasil Hidrasi 65%' },
-        { id: 'seed-2', timestamp: new Date(2026, 4, 12).toISOString(), userId: 'super-admin-01', username: 'superadmin', role: 'super_admin', action: 'Login Portal', details: 'Autentikasi CEO via Dashboard' },
-        { id: 'seed-3', timestamp: new Date(2026, 4, 15).toISOString(), userId: 'admin-01', username: 'consultant', role: 'admin', action: 'Download PDF Report', details: 'Ekspor dokumen A4 pasien Clara' }
-      ];
-      localStorage.setItem('lumina-audit-logs', JSON.stringify(defaultAudits));
-      setAuditLogs(defaultAudits);
-    } else {
-      setAuditLogs(loadedLogs);
-    }
   }, [currentUser]);
 
   // Handle Role Modification
-  const handleChangeRole = (userId: string, targetRole: UserRole) => {
+  const handleChangeRole = async (userId: string, targetRole: UserRole) => {
     if (!isSuper) {
-      setToastMessage(isEn ? 'Unauthorized! Only Dr. Clara (Super Admin) can change credentials' : 'Akses ditolak! Hanya Dr. Clara (Super Admin) yang dapat mengedit role');
+      setToastMessage(isEn ? 'Unauthorized! Only Super Admins can change credentials' : 'Akses ditolak! Hanya Super Admin yang dapat mengedit role');
       return;
     }
 
-    const updated = userList.map(u => {
-      if (u.id === userId) {
-        return { ...u, role: targetRole };
-      }
-      return u;
-    });
-    setUserList(updated);
-
-    // Save back custom users in local storage
-    const customUsersOnly = updated.filter(u => u.id.startsWith('custom-user-'));
-    localStorage.setItem('lumina-custom-users', JSON.stringify(customUsersOnly));
-
-    const targetUser = userList.find(u => u.id === userId);
-    if (targetUser) {
-      // Trigger audit log entry
-      const logMsg = `Ubah Role User ${targetUser.username}`;
-      const logDetails = `Mengubah hak akses dari ${targetUser.role.toUpperCase()} ke ${targetRole.toUpperCase()}`;
-      onAddAuditLog(logMsg, logDetails);
+    try {
+      const { db, updateDoc, doc } = await import('../firebase');
+      await updateDoc(doc(db, 'users', userId), { role: targetRole });
       
-      // Update our reactive audit state
-      const updatedLogsRaw = localStorage.getItem('lumina-audit-logs') || '[]';
-      setAuditLogs(JSON.parse(updatedLogsRaw));
+      const targetUser = userList.find(u => u.id === userId);
+      if (targetUser) {
+        // Trigger audit log entry
+        const logMsg = `Ubah Role User ${targetUser.username}`;
+        const logDetails = `Mengubah hak akses dari ${targetUser.role.toUpperCase()} ke ${targetRole.toUpperCase()}`;
+        onAddAuditLog(logMsg, logDetails);
+      }
+      setToastMessage(isEn ? 'User Role updated successfully!' : 'Hak akses pengguna berhasil dirubah!');
+      setTimeout(() => setToastMessage(''), 3000);
+    } catch (e) {
+      console.error(e);
+      setToastMessage(isEn ? 'Failed to update role' : 'Gagal merubah role');
     }
-
-    setToastMessage(isEn ? 'User Role updated successfully!' : 'Hak akses pengguna berhasil dirubah!');
-    setTimeout(() => setToastMessage(''), 3000);
   };
 
   // Handle Saving Notes
@@ -141,10 +116,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     // Add audit log for saving logs
     onAddAuditLog('Update Catatan Estetika', `Konsultan menambahkan saran klinis spesifik pada laporan ID: ${scanId}`);
     
-    // Sync local state
-    const updatedLogsRaw = localStorage.getItem('lumina-audit-logs') || '[]';
-    setAuditLogs(JSON.parse(updatedLogsRaw));
-
     setEditingScanId(null);
     setClinicianNote('');
     setToastMessage(isEn ? 'Clinician recommendations updated in Client Record!' : 'Saran estetika klinis berhasil disematkan ke berkas klien!');
@@ -314,87 +285,89 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       )}
 
       {/* Metric Dashboard Summary Header */}
-      <div className="p-6 bg-white border-b border-stone-200 grid grid-cols-2 md:grid-cols-4 gap-6 shrink-0 shadow-sm">
+      <div className="p-4 sm:p-6 bg-white border-b border-stone-200 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 shrink-0 shadow-sm overflow-hidden max-w-full">
         
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-pink-50 rounded-xl text-pink-500">
-            <ClipboardList className="w-5.5 h-5.5" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 border p-3 sm:border-none sm:p-0 rounded-xl sm:rounded-none min-w-0">
+          <div className="p-2 sm:p-3.5 bg-pink-50 rounded-lg sm:rounded-xl text-pink-500 w-fit shrink-0">
+            <ClipboardList className="w-4 h-4 sm:w-5.5 sm:h-5.5" />
           </div>
-          <div>
-            <p className="text-[9.5px] font-black uppercase text-stone-400 tracking-widest">{isEn ? 'TOTAL DIAGNOSES' : 'TOTAL PEMINDAIAN'}</p>
-            <p className="text-xl font-black text-slate-800">{history.length} <span className="text-stone-400 text-xs font-semibold">Ledgers</span></p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-blue-50 rounded-xl text-blue-500">
-            <Droplets className="w-5.5 h-5.5" />
-          </div>
-          <div>
-            <p className="text-[9.5px] font-black uppercase text-stone-400 tracking-widest">{isEn ? 'AVG HYDRATION' : 'RATA-RATA HIDRASI'}</p>
-            <p className="text-xl font-black text-slate-800">{averageHydration}% <span className="text-[#3b82f6] text-xs font-semibold">Moist</span></p>
+          <div className="min-w-0">
+            <p className="text-[8.5px] sm:text-[9.5px] font-black uppercase text-stone-400 tracking-wider sm:tracking-widest truncate">{isEn ? 'TOTAL DIAGNOSES' : 'TOTAL PEMINDAIAN'}</p>
+            <p className="text-lg sm:text-xl font-black text-slate-800 truncate">{history.length} <span className="text-stone-400 text-[10px] sm:text-xs font-semibold">Ledgers</span></p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-emerald-50 rounded-xl text-emerald-500">
-            <Users className="w-5.5 h-5.5" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 border p-3 sm:border-none sm:p-0 rounded-xl sm:rounded-none min-w-0">
+          <div className="p-2 sm:p-3.5 bg-blue-50 rounded-lg sm:rounded-xl text-blue-500 w-fit shrink-0">
+            <Droplets className="w-4 h-4 sm:w-5.5 sm:h-5.5" />
           </div>
-          <div>
-            <p className="text-[9.5px] font-black uppercase text-stone-400 tracking-widest">{isEn ? 'SANDBOX USERBASE' : 'PENGGUNA AKTIF'}</p>
-            <p className="text-xl font-black text-slate-800">{userList.length} <span className="text-stone-400 text-xs font-semibold">Profiles</span></p>
+          <div className="min-w-0">
+            <p className="text-[8.5px] sm:text-[9.5px] font-black uppercase text-stone-400 tracking-wider sm:tracking-widest truncate">{isEn ? 'AVG HYDRATION' : 'RATA-RATA HIDRASI'}</p>
+            <p className="text-lg sm:text-xl font-black text-slate-800 truncate">{averageHydration}% <span className="text-[#3b82f6] text-[10px] sm:text-xs font-semibold">Moist</span></p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="p-3.5 bg-purple-50 rounded-xl text-purple-500">
-            <ShieldCheck className="w-5.5 h-5.5" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 border p-3 sm:border-none sm:p-0 rounded-xl sm:rounded-none min-w-0">
+          <div className="p-2 sm:p-3.5 bg-emerald-50 rounded-lg sm:rounded-xl text-emerald-500 w-fit shrink-0">
+            <Users className="w-4 h-4 sm:w-5.5 sm:h-5.5" />
           </div>
-          <div>
-            <p className="text-[9.5px] font-black uppercase text-stone-400 tracking-widest">{isEn ? 'ROLE COMPLIANCE' : 'ZONA KEPATUHAN'}</p>
-            <p className="text-xl font-black text-emerald-500 uppercase tracking-wider text-xs">STANDARD ACTIVE</p>
+          <div className="min-w-0">
+            <p className="text-[8.5px] sm:text-[9.5px] font-black uppercase text-stone-400 tracking-wider sm:tracking-widest truncate">{isEn ? 'SANDBOX USERBASE' : 'PENGGUNA AKTIF'}</p>
+            <p className="text-lg sm:text-xl font-black text-slate-800 truncate">{userList.length} <span className="text-stone-400 text-[10px] sm:text-xs font-semibold">Profiles</span></p>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 border p-3 sm:border-none sm:p-0 rounded-xl sm:rounded-none min-w-0">
+          <div className="p-2 sm:p-3.5 bg-purple-50 rounded-lg sm:rounded-xl text-purple-500 w-fit shrink-0">
+            <ShieldCheck className="w-4 h-4 sm:w-5.5 sm:h-5.5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[8.5px] sm:text-[9.5px] font-black uppercase text-stone-400 tracking-wider sm:tracking-widest truncate">{isEn ? 'ROLE COMPLIANCE' : 'ZONA KEPATUHAN'}</p>
+            <p className="text-lg sm:text-xl font-black text-emerald-500 uppercase tracking-wider text-[10px] sm:text-xs truncate">STANDARD ACTIVE</p>
           </div>
         </div>
 
       </div>
 
       {/* Navigation Sub-tab Control */}
-      <div className="h-12 bg-white/70 border-b border-stone-200 px-6 flex items-center justify-between shrink-0 font-sans text-xs">
-        <div className="flex gap-4">
+      <div className="bg-white/70 border-b border-stone-200 px-4 sm:px-6 flex flex-col sm:flex-row items-stretch sm:items-center justify-between shrink-0 font-sans text-xs pt-1 sm:pt-0">
+        <div className="flex gap-4 sm:gap-6 w-full sm:w-auto overflow-x-auto hide-scrollbar sm:min-h-[3rem] items-end pb-1 sm:pb-0">
           <button 
             onClick={() => setActiveTab('directory')}
-            className={`flex items-center gap-1.5 font-bold tracking-tight pb-3 pt-3 border-b-2 transition-all ${activeTab === 'directory' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+            className={`flex items-center gap-1.5 whitespace-nowrap font-bold tracking-tight pb-2 sm:pb-3 pt-3 border-b-2 transition-all ${activeTab === 'directory' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
           >
             <FileText className="w-4 h-4" />
-            {isEn ? 'Diagnosis Ledgers & Consultations' : 'Anotasi Catatan Estetika'}
+            {isEn ? 'Diagnosis Ledgers' : 'Anotasi Catatan Estetika'}
           </button>
 
           {isSuper && (
             <button 
               onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-1.5 font-bold tracking-tight pb-3 pt-3 border-b-2 transition-all ${activeTab === 'users' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+              className={`flex items-center gap-1.5 whitespace-nowrap font-bold tracking-tight pb-2 sm:pb-3 pt-3 border-b-2 transition-all ${activeTab === 'users' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
             >
               <UserCog className="w-4 h-4" />
-              {isEn ? 'Clinic User Directory (RBAC)' : 'Promosi Role Sandbox (CEO Only)'}
+              {isEn ? 'Role Management' : 'Role Sandbox (CEO)'}
             </button>
           )}
 
           <button 
             onClick={() => setActiveTab('audits')}
-            className={`flex items-center gap-1.5 font-bold tracking-tight pb-3 pt-3 border-b-2 transition-all ${activeTab === 'audits' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+            className={`flex items-center gap-1.5 whitespace-nowrap font-bold tracking-tight pb-2 sm:pb-3 pt-3 border-b-2 transition-all ${activeTab === 'audits' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
           >
             <ClipboardList className="w-4 h-4" />
-            {isEn ? 'Clinic Security Audit Logs' : 'Log Audit Pengamanan'}
+            {isEn ? 'Security Audit Logs' : 'Log Audit Pengamanan'}
           </button>
         </div>
 
-        <span className="text-[10px] font-mono uppercase bg-slate-100 text-slate-500 px-2 py-0.5 rounded border border-slate-200 font-bold">
-          {currentUser.role.replace('_', ' ')}: {currentUser.name}
-        </span>
+        <div className="hidden sm:flex shrink-0">
+          <span className="text-[10px] whitespace-nowrap font-mono uppercase bg-slate-100 text-slate-500 px-2 py-0.5 rounded border border-slate-200 font-bold">
+            {currentUser.role.replace('_', ' ')}: {currentUser.name}
+          </span>
+        </div>
       </div>
 
       {/* Main Scrollable Body View */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-h-[calc(100vh-250px)] sm:max-h-[calc(100vh-220px)] md:max-h-none">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6">
         
         {/* TAB 1: LEDGERS DIRECTORY & CLINICAL Observer NOTES */}
         {activeTab === 'directory' && (

@@ -906,7 +906,7 @@ export function DashboardView({
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-slate-900 rounded-3xl overflow-hidden max-w-[800px] w-full max-h-[90vh] flex flex-col md:flex-row text-white border border-slate-700 shadow-2xl relative"
+            className="bg-slate-900 rounded-3xl overflow-y-auto md:overflow-hidden max-w-[800px] w-full max-h-[90vh] flex flex-col md:flex-row text-white border border-slate-700 shadow-2xl relative"
           >
             <button
               onClick={() => setShowSkinAnalysisModal(false)}
@@ -1081,7 +1081,7 @@ export function DashboardView({
             </div>
 
             {/* Right Side: Detailed Analysis Data */}
-            <div className="w-full md:w-[55%] p-6 md:p-8 bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col overflow-y-auto">
+            <div className="w-full md:w-[55%] p-6 md:p-8 bg-gradient-to-br from-slate-900 to-slate-950 flex flex-col flex-1 min-h-0 overflow-visible md:overflow-y-auto">
               <h3 className="text-xl font-bold text-white mb-1">
                 {language === 'id' ? 'Topologi Wajah Detail' : 'Detailed Facial Topology'}
               </h3>
