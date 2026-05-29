@@ -90,7 +90,7 @@ export function UploadView({ onUpload }: UploadViewProps) {
   };
 
   return (
-    <div className="flex-1 flex flex-col justify-center relative">
+    <div className="flex-1 flex flex-col justify-start md:justify-center gap-y-3 pt-1 md:pt-0 relative">
       <style>{`
         @keyframes scanEffect {
           0% { transform: translateY(-135px); opacity: 0; }
@@ -136,7 +136,7 @@ export function UploadView({ onUpload }: UploadViewProps) {
             {/* Instructions badge at the top overlay */}
             <div className="absolute top-16 left-4 right-4 text-center px-4 py-2.5 bg-slate-950/80 backdrop-blur-md rounded-xl border border-white/10 mx-6">
               <p className="text-[10px] font-black text-pink-400 tracking-wider uppercase mb-0.5 flex items-center justify-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-ping"></span>
+                <span className="w-1.5 h-1.5 rounded-full bg-pink-50 animate-ping"></span>
                 {language === 'id' ? 'Kalibrasi Posisi Wajah' : 'Face Calibration Guide'}
               </p>
               <p className="text-[9.5px] text-slate-300 font-semibold leading-relaxed">
@@ -176,28 +176,71 @@ export function UploadView({ onUpload }: UploadViewProps) {
         </div>
       ) : null}
 
+      {/* 1. PRIMARY: AI Camera Capture Card (Beautifully centered, elegant stack) */}
       <div 
-        className={`w-full flex-1 min-h-[250px] rounded-xl border-2 border-dashed p-6 transition-colors duration-200 flex flex-col items-center justify-center gap-4 ${dragActive ? 'border-pink-400 bg-pink-50' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 hover:border-slate-300'}`}
+        onClick={startCamera}
+        className="w-full bg-[#fdf5f8] hover:bg-[#fcf1f5] rounded-xl border border-pink-200/50 p-4 text-center cursor-pointer transition-all duration-300 hover:shadow-sm flex flex-col items-center justify-center relative overflow-hidden"
+      >
+        {/* Compact Recommended Tag */}
+        <div className="absolute top-2 right-2 bg-pink-500 text-white font-mono text-[7px] font-extrabold tracking-wider px-1.5 py-0.5 rounded uppercase">
+          {language === 'id' ? 'Rekomendasi' : 'Recommend'}
+        </div>
+
+        <div className="w-10 h-10 rounded-xl bg-pink-500 text-white shadow-sm flex items-center justify-center mb-2.5 shrink-0">
+          <Camera size={18} strokeWidth={2} />
+        </div>
+
+        <div className="max-w-[95%]">
+          <h3 className="text-slate-800 font-bold text-xs mb-0.5 flex items-center justify-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            {language === 'id' ? 'Ambil Foto (Kamera AI Live)' : 'Take Photo (Live AI Camera)'}
+          </h3>
+          <p className="text-slate-500 text-[9.5px] leading-relaxed font-semibold">
+            {language === 'id' 
+              ? 'Gunakan kamera depan untuk memindai struktur wajah Anda secara instan dengan presisi estetika tinggi.' 
+              : 'Scan face structure with front camera for instant and highly precise aesthetic results.'}
+          </p>
+        </div>
+
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            startCamera();
+          }}
+          className="mt-2.5 bg-pink-600 hover:bg-pink-700 text-white px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all duration-150 transform active:scale-95 cursor-pointer flex items-center gap-1"
+        >
+          <Camera size={10} />
+          {language === 'id' ? 'Buka Kamera' : 'Open Camera'}
+        </button>
+      </div>
+
+      {/* Elegant Separator */}
+      <div className="my-3 flex items-center justify-center uppercase tracking-widest text-slate-300 font-extrabold text-[7.5px] font-mono select-none px-4">
+        <div className="flex-1 h-px bg-slate-100"></div>
+        <span className="px-2 text-slate-400">{language === 'id' ? 'atau unggah berkas' : 'or upload file'}</span>
+        <div className="flex-1 h-px bg-slate-100"></div>
+      </div>
+
+      {/* 2. SECONDARY: Gallery selection without extra 'Pilih File' button */}
+      <div 
+        className={`w-full rounded-xl border border-dashed transition-all duration-200 p-2.5 flex items-center gap-2.5 cursor-pointer hover:border-slate-350 ${dragActive ? 'border-pink-300 bg-pink-50/20' : 'border-slate-200 bg-slate-50/25 hover:bg-slate-100/20'}`}
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
       >
-        <div className="w-14 h-14 rounded-full bg-white shadow-sm flex items-center justify-center text-pink-500">
-          <UploadCloud size={28} strokeWidth={1.5} />
+        <div className="w-7 h-7 rounded-lg bg-white shadow-sm border border-slate-100 flex items-center justify-center text-slate-400 shrink-0">
+          <UploadCloud size={13} strokeWidth={2} />
         </div>
-        <div className="text-center">
-          <p className="text-slate-700 font-bold text-xs mb-1">{lang.uploadTitle || 'Unggah foto atau buka kamera'}</p>
-          <p className="text-slate-400 text-[10px]">PNG, JPG up to 5MB</p>
+        <div className="min-w-0 flex-1 text-left">
+          <p className="text-slate-700 font-bold text-[10px]">
+            {language === 'id' ? 'Pilih Gambar dari Galeri' : 'Pick Image from Gallery'}
+          </p>
+          <p className="text-slate-400 text-[8.5px] font-medium mt-0.5">
+            PNG, JPG, HEIC up to 5MB
+          </p>
         </div>
-        
-        <button 
-          onClick={() => fileInputRef.current?.click()}
-          className="mt-2 bg-pink-500 hover:bg-pink-600 text-white px-6 py-2.5 rounded-full text-xs font-bold transition-colors shadow-lg shadow-pink-100 w-full cursor-pointer"
-          data-testid="btn-upload-photo"
-        >
-          {lang.browseText || 'Pilih Foto'}
-        </button>
         <input 
           type="file" 
           accept="image/*" 
@@ -208,45 +251,9 @@ export function UploadView({ onUpload }: UploadViewProps) {
         />
       </div>
 
-      {/* Guidelines section under upload box */}
-      <div className="mt-3.5 bg-[#eff6ff]/60 border border-blue-100 rounded-xl p-3.5 text-left animate-fade-in">
-        <p className="text-[9.5px] font-black text-blue-800 uppercase tracking-widest mb-2 flex items-center gap-1.5 font-mono">
-          <CircleDot className="w-3.5 h-3.5 text-blue-600 animate-pulse" />
-          {language === 'id' ? 'Pedoman Foto Presisi Estetika AI' : 'AI Precision Photo Guidelines'}
-        </p>
-        <ul className="text-[10.5px] text-slate-600 space-y-1.5 font-semibold list-decimal pl-3.5 leading-relaxed">
-          <li>
-            <strong className="text-slate-700">{language === 'id' ? 'Posisi Sejajar:' : 'Upright Alignment:'}</strong>{' '}
-            {language === 'id' ? 'Tatap lurus ke kamera, sejajarkan wajah secara tegak dan horisontal.' : 'Look directly at the camera, keeping your face symmetric.'}
-          </li>
-          <li>
-            <strong className="text-slate-700">{language === 'id' ? 'Pencahayaan Merata:' : 'Bright & Even Light:'}</strong>{' '}
-            {language === 'id' ? 'Pastikan cahaya alami/ruangan cukup terang dan tidak berbayang sebelah.' : 'Use bright, glare-free environments to eliminate shadows.'}
-          </li>
-          <li>
-            <strong className="text-slate-700">{language === 'id' ? 'Eskpresi Alami:' : 'Natural Expression:'}</strong>{' '}
-            {language === 'id' ? 'Pertahankan raut wajah netral (jangan terlalu tersenyum lebar/cemberut).' : 'Maintain a neutral expression (no broad smiling or frowning).'}
-          </li>
-          <li>
-            <strong className="text-slate-700">{language === 'id' ? 'Deteksi Jelas:' : 'Unobstructed Face:'}</strong>{' '}
-            {language === 'id' ? 'Ikat atau singkirkan rambut dari dahi & lepas kacamata sementara waktu.' : 'Pull back hair to expose the forehead and remove glasses.'}
-          </li>
-        </ul>
-      </div>
-
-      <div className="mt-4 flex flex-col gap-2">
-        <button 
-          onClick={startCamera}
-          className="w-full bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 py-3 rounded-xl text-xs font-semibold transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-          data-testid="btn-camera-capture"
-        >
-          <Camera size={16} className="text-slate-500" />
-          {language === 'id' ? 'Gunakan Kamera Sistem' : 'Use System Camera'}
-        </button>
-        <p className="text-[10px] text-slate-400 text-center uppercase tracking-widest leading-relaxed mt-2 font-semibold">
-          {language === 'id' ? 'Privasi Terjamin \u2022 Keamanan Tingkat Medis' : 'Privacy Guaranteed \u2022 Medical Grade Security'}
-        </p>
-      </div>
+      <p className="text-[7.5px] text-slate-400 text-center uppercase tracking-wider mt-3.5 font-bold">
+        {language === 'id' ? 'Kerahasiaan Privasi Diperlakukan Secara Profesional' : 'Patient Privacy Professionally Protected'}
+      </p>
     </div>
   );
 }

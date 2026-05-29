@@ -57,13 +57,19 @@ service cloud.firestore {
     }
 
     match /history/{historyId} {
-       // Only owner or admin can get and list
-       allow get: if isValidId(historyId) && isSignedIn() && (isAdmin() || existing().userId == request.auth.uid);
+       // Only owner, admin, or guest can get if it is a guest item
+       allow get: if isValidId(historyId) && (
+                     (existing().userId == 'guest') ||
+                     (isSignedIn() && (isAdmin() || existing().userId == request.auth.uid))
+                   );
        allow list: if isSignedIn() && (isAdmin() || resource.data.userId == request.auth.uid);
        
-       allow create: if isValidId(historyId) && isSignedIn() && 
+       allow create: if isValidId(historyId) && 
                      isValidHistoryItem(incoming()) && 
-                     (!('userId' in incoming()) || incoming().userId == request.auth.uid);
+                     (
+                       (isSignedIn() && (!('userId' in incoming()) || incoming().userId == request.auth.uid)) ||
+                       (!isSignedIn() && incoming().userId == 'guest')
+                     );
                      
        allow update: if isValidId(historyId) && isSignedIn() && 
                      isValidHistoryItem(incoming()) && 

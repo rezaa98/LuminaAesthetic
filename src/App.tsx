@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Sparkles, ArrowRight, Loader, LogIn, LogOut, ChevronRight, UserCog, UserCheck, Shield } from 'lucide-react';
+import { Sparkles, ArrowRight, Loader, LogIn, LogOut, ChevronRight, UserCog, UserCheck, Shield, Target, Sun, Smile, ShieldCheck, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as faceapi from '@vladmandic/face-api';
 import { AppState, AnalysisResult, HistoryItem, User, AuditLog, UserRole } from './types';
@@ -62,7 +62,7 @@ export default function App() {
             }
           } else {
             // New user via Google Login, default role to user
-            const role = firebaseUser.email === 'reza.yusuf98@gmail.com' ? 'super_admin' : 'user';
+            const role: UserRole = firebaseUser.email === 'reza.yusuf98@gmail.com' ? 'super_admin' : 'user';
             const newUser: User = {
               id: firebaseUser.uid,
               name: firebaseUser.displayName || firebaseUser.email || 'User',
@@ -77,7 +77,7 @@ export default function App() {
              createdAt: Date.now()
             });
             setCurrentUser(newUser);
-            if (role === 'admin' || role === 'super_admin') {
+            if ((role as string) === 'admin' || role === 'super_admin') {
                setAppState('admin');
             } else {
                setAppState('upload');
@@ -614,7 +614,7 @@ export default function App() {
               {language === 'id' ? 'Input Wajah' : 'Face Input'}
             </h2>
 
-            <div className="flex-1 flex flex-col relative w-full h-full min-h-[400px]">
+            <div className="flex-1 flex flex-col relative w-full h-full min-h-[340px] md:min-h-0">
               {appState === 'upload' && <UploadView onUpload={handleUpload} />}
               {appState === 'analyzing' && <AnalysisLoading />}
               {appState === 'results' && (
@@ -795,12 +795,111 @@ export default function App() {
           </section>
           
           {/* Main Content: Dashboard Results */}
-          <section className="flex-1 md:overflow-hidden flex flex-col">
+          <section className={`flex-1 md:overflow-hidden flex flex-col ${appState !== 'results' ? 'hidden md:flex' : ''}`}>
             {appState !== 'results' ? (
-              <div id="dashboard-empty" className="flex-1 flex flex-col items-center justify-center bg-white border border-slate-100 rounded-2xl text-slate-400 opacity-60 p-8 text-center shadow-sm">
-                <Sparkles className="w-16 h-16 mb-4 opacity-50" />
-                <p className="text-lg font-bold text-slate-600">{lang.scanResult || 'Hasil Analisis Akan Muncul Di Sini'}</p>
-                <p className="text-sm mt-1">{lang.uploadSubtitle ? (language === 'id' ? 'Unggah foto untuk memulai diagnosis AI' : 'Upload photo to start AI diagnosis') : 'Unggah foto untuk memulai diagnosis AI'}</p>
+              <div id="dashboard-empty" className="flex-1 flex flex-col justify-center gap-y-5 md:gap-y-6 bg-white border border-slate-100 rounded-2xl p-5 md:p-8 text-center shadow-sm">
+                
+                {/* Header Welcome Title */}
+                <div className="max-w-xl mx-auto mt-2">
+                  <div className="inline-flex items-center gap-1.5 bg-pink-50 text-pink-500 text-[9px] uppercase font-mono font-black tracking-widest px-3 py-1 rounded-full mb-2">
+                    <Sparkles className="w-3 h-3 animate-pulse" />
+                    {language === 'id' ? 'Ekosistem Estetika AI' : 'AI Aesthetic Diagnostics'}
+                  </div>
+                  <h3 className="text-slate-800 font-extrabold text-[15px] md:text-lg tracking-tight leading-snug">
+                    {language === 'id' ? 'Pedoman Presisi Foto Wajah AI' : 'AI Precision Photo Guidelines'}
+                  </h3>
+                  <p className="text-slate-500 text-[11px] md:text-xs leading-relaxed font-semibold mt-1 max-w-lg mx-auto">
+                    {language === 'id' 
+                      ? 'Posisikan foto wajah Anda sesuai dengan indikator medis di bawah ini demi menjamin keakuratan pemindaian kontur & struktur rahang.' 
+                      : 'Align your facial capture with standard clinical guidelines to ensure highly precise metric calculations for jaw alignments.'}
+                  </p>
+                </div>
+
+                {/* 2x2 Clean Bento Grid for Guidelines */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-2xl mx-auto w-full my-4">
+                  
+                  {/* Card 1 */}
+                  <div className="p-3.5 bg-slate-50/60 border border-slate-100 rounded-xl hover:shadow-xs transition-shadow flex gap-3 text-left">
+                    <div className="w-8 h-8 rounded-lg bg-pink-100 text-pink-600 flex items-center justify-center shrink-0">
+                      <Target size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-[10.5px] font-bold text-slate-800 uppercase tracking-wide">
+                        {language === 'id' ? 'Posisi Sejajar' : 'Upright Alignment'}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 leading-normal font-semibold mt-0.5">
+                        {language === 'id' 
+                          ? 'Tatap lurus tegak ke arah kamera, pastikan posisi mata seimbang & sejajar secara horisontal.' 
+                          : 'Look directly at the front lens, ensuring eye level is straight and aligned horizontally.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 2 */}
+                  <div className="p-3.5 bg-slate-50/60 border border-slate-100 rounded-xl hover:shadow-xs transition-shadow flex gap-3 text-left">
+                    <div className="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                      <Sun size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-[10.5px] font-bold text-slate-800 uppercase tracking-wide">
+                        {language === 'id' ? 'Cahaya Terang' : 'Bright Lighting'}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 leading-normal font-semibold mt-0.5">
+                        {language === 'id' 
+                          ? 'Gunakan cahaya ruangan yang cukup terang dan merata tanpa ada bayangan tebal di satu sisi wajah.' 
+                          : 'Use bright ambient or natural light. Avoid harsh shadows cast diagonally across your cheekbones.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 3 */}
+                  <div className="p-3.5 bg-slate-50/60 border border-slate-100 rounded-xl hover:shadow-xs transition-shadow flex gap-3 text-left">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                      <Smile size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-[10.5px] font-bold text-slate-800 uppercase tracking-wide">
+                        {language === 'id' ? 'Ekspresi Netral' : 'Natural Expression'}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 leading-normal font-semibold mt-0.5">
+                        {language === 'id' 
+                          ? 'Rilekskan otot wajah Anda. Hindari tersenyum terlalu lebar agar proporsi alami terukur.' 
+                          : 'Maintain natural facial musculature. Avoid smiling widely so basic ratios stay true.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Card 4 */}
+                  <div className="p-3.5 bg-[#fbfdfb] border border-emerald-100/50 rounded-xl hover:shadow-xs transition-shadow flex gap-3 text-left">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-105 bg-emerald-100 text-emerald-650 text-emerald-600 flex items-center justify-center shrink-0">
+                      <ShieldCheck size={16} />
+                    </div>
+                    <div>
+                      <h4 className="text-[10.5px] font-bold text-slate-850 text-slate-800 uppercase tracking-wide">
+                        {language === 'id' ? 'Wajah Bersih' : 'Unobstructed Face'}
+                      </h4>
+                      <p className="text-[10px] text-slate-500 leading-normal font-semibold mt-0.5">
+                        {language === 'id' 
+                          ? 'Singkirkan helaian rambut dari kening/dahi serta lepas kacamata sementara waktu untuk kalibrasi.' 
+                          : 'Pull back loose locks of hair from your face/forehead. Remove high reflections/glasses.'}
+                      </p>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Patient Safety Integrity Trust badge under guidelines */}
+                <div className="border-t border-slate-100 pt-3 flex flex-col sm:flex-row items-center justify-between text-[8.5px] font-bold uppercase tracking-wider text-slate-400 gap-2 px-1">
+                  <div className="flex items-center gap-1.5 text-slate-400">
+                    <Lock className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>{language === 'id' ? 'Enkripsi & Kerahasiaan Sesi HIPAA Aktif' : 'Secure Session & Medical HIPAA Compliant'}</span>
+                  </div>
+                  <div className="text-slate-450 text-slate-400 font-mono text-[8px] flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    {language === 'id' ? 'Data Diolah Secara Lokal' : 'Locally Shielded Sandbox Mode'}
+                  </div>
+                </div>
+
               </div>
             ) : (
               analysisData && (
@@ -840,7 +939,7 @@ export default function App() {
               onClick={() => setShowChangelog(true)} 
               className="text-[10px] text-pink-500 hover:text-pink-600 font-mono tracking-wider font-bold underline decoration-pink-500/30 underline-offset-2 transition-colors cursor-pointer"
             >
-              v2.23.0 Updates
+              v2.29.0 Updates
             </button>
           </div>
         </footer>

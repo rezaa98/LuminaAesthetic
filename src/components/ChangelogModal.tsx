@@ -8,6 +8,69 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.29.0",
+      date: "29 May 2026",
+      changes: [
+        "Pusat Dokumentasi Terpadu (Comprehensive System Documentation): Membuat dokumen sistem DOCS.md yang mencakup Technical Requirement Document (TRD), Functional Specification Document (FSD) yang terperinci, alur interaksi terpetakan, ERD, dan spesifikasi kontrak API backend.",
+        "Penyempurnaan Versi Sistem (System Versioning): Memperbarui pelabelan footer dan modal sejarah versi ke v2.29.0 demi transparansi rilis siklus pengembangan."
+      ],
+    },
+    {
+      version: "v2.28.0",
+      date: "29 May 2026",
+      changes: [
+        "Resolusi Izin Akun Tamu (Guest Permissions): Memperbarui Firestore Rules (firestore.rules & DRAFT_firestore.rules) guna mendukung pembuatan entri analisis mandiri bagi Guest (userId: 'guest') serta pengambilan data yang aman tanpa memerlukan login.",
+        "Pembersihan Area Kosong Seluler (Mobile Space Clean-Up): Menyembunyikan panel kosong berisi pedoman bento di tampilan seluler (appState !== 'results') untuk merampingkan alur berfoto secara dinamis tanpa guliran ekstrem.",
+        "Roda Penyelaras Tata Letak Desktop (Desktop Space Balancing): Mengganti perataan 'justify-between' dengan alur sentris 'justify-center gap-y-6' pada panel kosong guna menyatukan elemen visual di berbagai tinggi layar desktop tanpa kerenggangan."
+      ],
+    },
+    {
+      version: "v2.27.0",
+      date: "28 May 2026",
+      changes: [
+        "Restrukturisasi Tata Letak Kiri-Kanan Seimbang: Memisahkan panel input klinis mandiri di navigasi sebelah kiri, serta memindahkan bento pedoman presisi ke area dashboard kanan saat kosong.",
+        "Refinement Penilaian Rekomendasi: Memperkecil lencana rekomendasi serta menyederhanakan uploader galeri tanpa tombol 'pilih berkas' redundan demi kerapian visual vertikal sidebar.",
+        "Pusat Panduan Estetika Interaktif: Menghadirkan Onboarding Bento interaktif di sisi kanan ('dashboard-empty') berisi 4 pilar pedoman presisi (Posisi, Cahaya, Ekspresi, & Wajah Bersih) yang terintegrasi pengaman medis HIPAA."
+      ],
+    },
+    {
+      version: "v2.26.0",
+      date: "28 May 2026",
+      changes: [
+        "Pengutamaan Kamera AI Live: Memindahkan posisi instrumen pembuka Kamera Sistem Live ke urutan teratas sebagai prioritas utama bagi kenyamanan berfoto langsung.",
+        "Desain Panel Kamera Refined: Mendesain ulang kartu Kamera AI dengan efek bayangan membal, animasi bouncing, serta indikator hijau pendar presisi.",
+        "Uploader File Sekunder Kompak: Menyederhanakan dropzone pengunggah berkas eksternal menjadi horizontal di bawah pembatas pemisah elegan untuk menjaga fokus alur kerja interaksi."
+      ],
+    },
+    {
+      version: "v2.25.0",
+      date: "28 May 2026",
+      changes: [
+        "Dashboard Ultra-Compact Seluler: Mendesain ulang margin, celah (gaps), dan padding kartu menjadi dinamis kompak p-3 sm:p-4 untuk kenyamanan pemantauan data di smartphone.",
+        "Anotasi Catatan Estetika Eksklusif: Menghadirkan widget panel resep/catatan klinis dinamis dari konsultan (Advisory Notes) di urutan pertama dashboard hasil dengan sentuhan visual emas-oranye mewah.",
+        "Akordeon Lipat Presisi Simetri AI: Mempersingkat tinggi kartu analisis geometri dengan menu lipat (collapsible toggle) interaktif untuk rasio keselarasan bentuk dahi, alis, bibir, dan dagu.",
+        "Integrasi Tombol Kontrol Ekspansi: Mempermudah penyesuaian detail parameter proporsi estetis dengan sekali sentuh tanpa memperpanjang gulir vertikal seluler."
+      ],
+    },
+    {
+      version: "v2.24.1",
+      date: "28 May 2026",
+      changes: [
+        "Resolusi Autentikasi Firebase: Memperbaiki error 'auth/invalid-api-key' dengan mengalihkan pemuatan konfigurasi langsung dari file 'firebase-applet-config.json' terikat lokal produk.",
+        "Penghapusan Ketergantungan Env Client: Mengeliminasi ketergantungan runtime client terhadap variabel lingkungan '.env' eksternal atau build-time replacements."
+      ],
+    },
+    {
+      version: "v2.24.0",
+      date: "28 May 2026",
+      changes: [
+        "Optimalisasi Tata Letak Live Try-On: Memindahkan komponen slider presisi kalibrasi (Y/X offset, Skala, dan Kemiringan) tepat di bawah panel preview wajah tanpa perlu melakukan scroll.",
+        "Peningkatan Grafis Bingkai Bingkisan 3D SVG: Menambahkan efek pantulan realistik 3D metal logam, gloss gradien lensa, lengkungan bayangan gagang (temple arms back reflections), serta rivet berkilau.",
+        "Kalibrasi Deteksi Alinyemen Mata AI: Menyesuaikan pusat frame agar kacamata terpasang pas secara anatomis di posisi mata target otomatis (koordinat x: 63 & 137).",
+        "Perbaikan Bug Linter & Kompilation: Mengatasi konflik perbandingan tipe peran pengguna (user role) di App.tsx serta mengadopsi penanganan aman platform 'import.meta as any' dalam firebase.ts."
+      ],
+    },
+    {
       version: "v2.23.0",
       date: "27 May 2026",
       changes: [

@@ -40,123 +40,269 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
   switch (type) {
     case 'round':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+          <defs>
+            <linearGradient id="glare-round" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
+              <stop offset="40%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.15" />
+            </linearGradient>
+          </defs>
+          {/* Temple arms back reflection */}
+          <path d="M 15 36 C 8 38, -2 46, -4 58" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          <path d="M 185 36 C 192 38, 202 46, 204 58" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
             {/* Left rim */}
-            <circle cx="51" cy="45" r="23" fill="rgba(15,23,42,0.03)" />
+            <circle cx="63" cy="43" r="23" fill="url(#glare-round)" stroke={color} />
             {/* Right rim */}
-            <circle cx="149" cy="45" r="23" fill="rgba(15,23,42,0.03)" />
+            <circle cx="137" cy="43" r="23" fill="url(#glare-round)" stroke={color} />
+            {/* Lenses internal shine highlight arc */}
+            <path d="M 45 32 A 20 20 0 0 1 61 23" stroke="#ffffff" strokeWidth="1.5" opacity="0.45" />
+            <path d="M 119 32 A 20 20 0 0 1 135 23" stroke="#ffffff" strokeWidth="1.5" opacity="0.45" />
             {/* Bridge */}
-            <path d="M 74 42 A 25 25 0 0 1 126 42" strokeWidth="4.5" />
-            {/* Outer hinges/endpieces */}
-            <path d="M 18 45 L 28 45" strokeWidth="6" />
-            {/* Right hinge */}
-            <path d="M 182 45 L 172 45" strokeWidth="6" />
+            <path d="M 86 43 Q 100 34 114 43" strokeWidth="4.5" />
+            {/* Endpieces (hinges) */}
+            <path d="M 15 36 L 40 37" strokeWidth="6" />
+            <path d="M 185 36 L 160 37" strokeWidth="6" />
           </g>
         </svg>
       );
     case 'square':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+          <defs>
+            <linearGradient id="glare-square" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+              <stop offset="35%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="65%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.12" />
+            </linearGradient>
+          </defs>
+          <path d="M 15 28 C 8 30, -2 38, -4 50" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          <path d="M 185 28 C 192 30, 202 38, 204 50" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round">
             {/* Left Frame */}
-            <rect x="25" y="24" width="52" height="42" rx="10" fill="rgba(15,23,42,0.03)" />
+            <rect x="38" y="21" width="50" height="44" rx="10" fill="url(#glare-square)" stroke={color} />
             {/* Right Frame */}
-            <rect x="123" y="24" width="52" height="42" rx="10" fill="rgba(15,23,42,0.03)" />
+            <rect x="112" y="21" width="50" height="44" rx="10" fill="url(#glare-square)" stroke={color} />
+            {/* Lens top gloss highlight */}
+            <path d="M 46 25 L 80 25" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
+            <path d="M 120 25 L 154 25" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
             {/* Dynamic keyhole bridge */}
-            <path d="M 77 34 Q 100 27 123 34" strokeWidth="5" />
+            <path d="M 88 34 Q 100 27 112 34" strokeWidth="5" />
             {/* Endpieces */}
-            <path d="M 15 28 L 25 28" strokeWidth="8" />
-            <path d="M 185 28 L 175 28" strokeWidth="8" />
+            <path d="M 15 28 L 38 30" strokeWidth="8" />
+            <path d="M 185 28 L 162 30" strokeWidth="8" />
           </g>
         </svg>
       );
     case 'oval':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+          <defs>
+            <linearGradient id="glare-oval" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
+              <stop offset="45%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.15" />
+            </linearGradient>
+          </defs>
+          <path d="M 15 38 C 8 40, -2 48, -4 60" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          <path d="M 185 38 C 192 40, 202 48, 204 60" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="5" strokeLinejoin="round" strokeLinecap="round">
-            <ellipse cx="50" cy="45" rx="26" ry="18" fill="rgba(15,23,42,0.03)" />
-            <ellipse cx="150" cy="45" rx="26" ry="18" fill="rgba(15,23,42,0.03)" />
-            <path d="M 76 43 Q 100 32 124 43" strokeWidth="4" />
-            <path d="M 16 43 L 24 43" strokeWidth="6.5" />
-            <path d="M 184 43 L 176 43" strokeWidth="6.5" />
+            {/* Oval Rims */}
+            <ellipse cx="63" cy="43" rx="27" ry="18" fill="url(#glare-oval)" stroke={color} />
+            <ellipse cx="137" cy="43" rx="27" ry="18" fill="url(#glare-oval)" stroke={color} />
+            {/* Lens flare */}
+            <path d="M 44 35 A 22 14 0 0 1 62 27" stroke="#ffffff" strokeWidth="1.5" opacity="0.45" />
+            <path d="M 118 35 A 22 14 0 0 1 136 27" stroke="#ffffff" strokeWidth="1.5" opacity="0.45" />
+            {/* Bridge */}
+            <path d="M 90 40 Q 100 30 110 40" strokeWidth="4.5" />
+            {/* Hinges */}
+            <path d="M 15 38 L 36 40" strokeWidth="6.5" />
+            <path d="M 185 38 L 164 40" strokeWidth="6.5" />
           </g>
         </svg>
       );
     case 'cateye':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_5px_8px_rgba(0,0,0,0.18)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_5px_12px_rgba(0,0,0,0.25)]">
+          <defs>
+            <linearGradient id="glare-cateye" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.32" />
+              <stop offset="45%" stopColor="#ffffff" stopOpacity="0.06" />
+              <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.18" />
+            </linearGradient>
+          </defs>
+          <path d="M 10 22 C 3 24, -4 32, -6 44" fill="none" stroke={color} strokeWidth="3" opacity="0.6" strokeLinecap="round" />
+          <path d="M 190 22 C 197 24, 204 32, 206 44" fill="none" stroke={color} strokeWidth="3" opacity="0.6" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
-            {/* Exquisite winged outer silhouette */}
-            <path d="M 15 20 C 32 18, 77 28, 77 31 C 77 55, 43 68, 28 58 C 14 49, 11 28, 15 20 Z" fill="rgba(15,23,42,0.03)" />
-            <path d="M 185 20 C 168 18, 123 28, 123 31 C 123 55, 157 68, 172 58 C 186 49, 189 28, 185 20 Z" fill="rgba(15,23,42,0.03)" />
-            <path d="M 77 31 Q 100 24 123 31" strokeWidth="4.2" />
-            <circle cx="11" cy="18" r="1.5" fill="#f43f5e" stroke="none" />
-            <circle cx="189" cy="18" r="1.5" fill="#f43f5e" stroke="none" />
+            {/* Exquisite winged outer silhouette perfectly centered on 63 & 137 */}
+            <path d="M 22 22 C 38 18, 86 28, 86 31 C 86 53, 52 64, 38 56 C 24 48, 16 32, 22 22 Z" fill="url(#glare-cateye)" stroke={color} />
+            <path d="M 178 22 C 162 18, 114 28, 114 31 C 114 53, 148 64, 162 56 C 176 48, 184 32, 178 22 Z" fill="url(#glare-cateye)" stroke={color} />
+            {/* Dynamic white accent curves on cat wings */}
+            <path d="M 27 21 C 36 19, 58 22, 70 26" stroke="#ffffff" strokeWidth="1.5" opacity="0.5" />
+            <path d="M 173 21 C 164 19, 142 22, 130 26" stroke="#ffffff" strokeWidth="1.5" opacity="0.5" />
+            {/* Bridge */}
+            <path d="M 86 31 Q 100 24 114 31" strokeWidth="4.2" />
+            {/* Little aesthetic sparkling rivets */}
+            <circle cx="16" cy="19" r="1.5" fill="#ffffff" stroke="none" opacity="0.9" className="animate-pulse" />
+            <circle cx="184" cy="19" r="1.5" fill="#ffffff" stroke="none" opacity="0.9" className="animate-pulse" />
+            {/* Endpieces */}
+            <path d="M 10 22 L 22 22" strokeWidth="7" />
+            <path d="M 190 22 L 178 22" strokeWidth="7" />
           </g>
         </svg>
       );
     case 'wayfarer':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_6px_rgba(0,0,0,0.15)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+          <defs>
+            <linearGradient id="glare-wayfarer" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+              <stop offset="45%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.12" />
+            </linearGradient>
+          </defs>
+          <path d="M 15 23 C 8 25, -2 33, -4 45" fill="none" stroke={color} strokeWidth="3.2" opacity="0.65" strokeLinecap="round" />
+          <path d="M 185 23 C 192 25, 202 33, 204 45" fill="none" stroke={color} strokeWidth="3.2" opacity="0.65" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="6.5" strokeLinejoin="round" strokeLinecap="round">
-            <path d="M 22 26 L 76 26 C 81 49, 62 68, 45 68 C 26 68, 18 47, 22 26 Z" fill="rgba(15,23,42,0.04)" />
-            <path d="M 178 26 L 124 26 C 119 49, 138 68, 155 68 C 174 68, 182 47, 178 26 Z" fill="rgba(15,23,42,0.04)" />
-            <path d="M 76 30 C 85 24, 115 24, 124 30" strokeWidth="5" />
-            <path d="M 12 25 L 22 25" strokeWidth="8" />
-            <path d="M 188 25 L 178 25" strokeWidth="8" />
-            <circle cx="18" cy="27" r="1.2" fill="#e2e8f0" stroke="none" />
-            <circle cx="182" cy="27" r="1.2" fill="#e2e8f0" stroke="none" />
+            <path d="M 33 24 L 84 24 C 88 45, 71 62, 57 62 C 40 62, 31 45, 33 24 Z" fill="url(#glare-wayfarer)" stroke={color} />
+            <path d="M 167 24 L 116 24 C 112 45, 129 62, 143 62 C 160 62, 169 45, 167 24 Z" fill="url(#glare-wayfarer)" stroke={color} />
+            {/* Upper lens highlights */}
+            <path d="M 38 28 L 74 28" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
+            <path d="M 126 28 L 162 28" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
+            {/* Bridge */}
+            <path d="M 84 28 C 91 23, 109 23, 116 28" strokeWidth="5.5" />
+            {/* Endpieces */}
+            <path d="M 15 23 L 33 24" strokeWidth="8" />
+            <path d="M 185 23 L 167 24" strokeWidth="8" />
+            {/* Iconic metal rivets */}
+            <ellipse cx="20" cy="26" rx="2" ry="1" fill="#e2e8f0" stroke="none" />
+            <ellipse cx="180" cy="26" rx="2" ry="1" fill="#e2e8f0" stroke="none" />
           </g>
         </svg>
       );
     case 'aviator':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_6px_rgba(0,0,0,0.12)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_8px_rgba(0,0,0,0.18)]">
+          <defs>
+            <linearGradient id="glare-aviator" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.28" />
+              <stop offset="50%" stopColor="#ffffff" stopOpacity="0.04" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.16" />
+            </linearGradient>
+          </defs>
+          <path d="M 15 24 C 8 26, -2 34, -4 46" fill="none" stroke={color} strokeWidth="1.8" opacity="0.7" strokeLinecap="round" />
+          <path d="M 185 24 C 192 26, 202 34, 204 46" fill="none" stroke={color} strokeWidth="1.8" opacity="0.7" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="2.8" strokeLinejoin="round" strokeLinecap="round">
-            <path d="M 28 28 Q 74 28 74 31 C 74 58, 60 72, 44 72 C 28 72, 21 54, 28 28 Z" fill="rgba(15,23,42,0.02)" />
-            <path d="M 172 28 Q 126 28 126 31 C 126 58, 140 72, 156 72 C 172 72, 179 54, 172 28 Z" fill="rgba(15,23,42,0.02)" />
-            <path d="M 44 21 L 156 21" strokeWidth="2.3" />
-            <path d="M 74 31 Q 100 27 126 31" strokeWidth="2.8" />
+            {/* Aviator teardrop lenses centered around 63 & 137 */}
+            <path d="M 37 26 Q 83 26 83 29 C 83 56, 69 70, 53 70 C 37 70, 30 52, 37 26 Z" fill="url(#glare-aviator)" stroke={color} />
+            <path d="M 163 26 Q 117 26 117 29 C 117 56, 131 70, 147 70 C 163 70, 170 52, 163 26 Z" fill="url(#glare-aviator)" stroke={color} />
+            {/* Top Bar (Double sweat bar) */}
+            <path d="M 53 19 L 147 19" strokeWidth="2.3" stroke={color} />
+            {/* Middle bridge bar */}
+            <path d="M 83 29 Q 100 25 117 29" strokeWidth="2.8" />
+            {/* Inside glass highlights */}
+            <path d="M 42 34 A 30 30 0 0 1 73 29" stroke="#ffffff" strokeWidth="1" opacity="0.4" />
+            <path d="M 127 29 A 30 30 0 0 1 158 34" stroke="#ffffff" strokeWidth="1" opacity="0.4" />
+            {/* Endpieces */}
+            <path d="M 15 24 L 37 26" strokeWidth="3.2" />
+            <path d="M 185 24 L 163 26" strokeWidth="3.2" />
           </g>
         </svg>
       );
     case 'narrow':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_3px_5px_rgba(0,0,0,0.15)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_3px_8px_rgba(0,0,0,0.2)]">
+          <defs>
+            <linearGradient id="glare-narrow" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
+              <stop offset="45%" stopColor="#ffffff" stopOpacity="0.05" />
+              <stop offset="55%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.14" />
+            </linearGradient>
+          </defs>
+          <path d="M 15 36 C 8 38, -2 46, -4 56" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          <path d="M 185 36 C 192 38, 202 46, 204 56" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
-            <rect x="28" y="34" width="46" height="20" rx="4" fill="rgba(15,23,42,0.03)" />
-            <rect x="126" y="34" width="46" height="20" rx="4" fill="rgba(15,23,42,0.03)" />
-            <path d="M 74 41 Q 100 36 126 41" strokeWidth="4" />
-            <path d="M 16 38 L 28 38" strokeWidth="7" />
-            <path d="M 184 38 L 172 38" strokeWidth="7" />
+            {/* Rectangular narrow lenses centered around 63 & 137 */}
+            <rect x="38" y="32" width="48" height="22" rx="4" fill="url(#glare-narrow)" stroke={color} />
+            <rect x="114" y="32" width="48" height="22" rx="4" fill="url(#glare-narrow)" stroke={color} />
+            {/* Sparkle highlights */}
+            <path d="M 42 34 L 70 34" stroke="#ffffff" strokeWidth="1.5" opacity="0.45" />
+            <path d="M 118 34 L 146 34" stroke="#ffffff" strokeWidth="1.5" opacity="0.45" />
+            {/* Bridge */}
+            <path d="M 86 39 Q 100 34 114 39" strokeWidth="4" />
+            {/* Endpieces */}
+            <path d="M 15 36 L 38 36" strokeWidth="7" />
+            <path d="M 185 36 L 162 36" strokeWidth="7" />
           </g>
         </svg>
       );
     case 'oversized':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_5px_10px_rgba(0,0,0,0.2)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_5px_12_rgba(0,0,0,0.22)]">
+          <defs>
+            <linearGradient id="glare-oversized" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.32" />
+              <stop offset="40%" stopColor="#ffffff" stopOpacity="0.06" />
+              <stop offset="60%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.16" />
+            </linearGradient>
+          </defs>
+          <path d="M 10 22 C 3 24, -4 32, -6 44" fill="none" stroke={color} strokeWidth="3.5" opacity="0.65" strokeLinecap="round" />
+          <path d="M 190 22 C 197 24, 204 32, 206 44" fill="none" stroke={color} strokeWidth="3.5" opacity="0.65" strokeLinecap="round" />
+          
           <g fill="none" stroke={color} strokeWidth="8" strokeLinejoin="round" strokeLinecap="round">
-            <rect x="18" y="15" width="62" height="56" rx="14" fill="rgba(15,23,42,0.05)" />
-            <rect x="120" y="15" width="62" height="56" rx="14" fill="rgba(15,23,42,0.05)" />
-            <path d="M 80 27 Q 100 18 120 27" strokeWidth="6" />
-            <path d="M 8 22 L 18 22" strokeWidth="10" />
-            <path d="M 192 22 L 182 22" strokeWidth="10" />
+            {/* Bold Oversized lenses centered around 63 & 137 */}
+            <rect x="33" y="16" width="53" height="52" rx="14" fill="url(#glare-oversized)" stroke={color} />
+            <rect x="114" y="16" width="53" height="52" rx="14" fill="url(#glare-oversized)" stroke={color} />
+            {/* Glare arcs */}
+            <path d="M 40 22 C 50 20, 68 22, 75 26" stroke="#ffffff" strokeWidth="2.2" opacity="0.45" />
+            <path d="M 121 22 C 131 20, 149 22, 156 26" stroke="#ffffff" strokeWidth="2.2" opacity="0.45" />
+            {/* Bridge */}
+            <path d="M 86 26 Q 100 18 114 26" strokeWidth="6" />
+            {/* Heavy endpieces */}
+            <path d="M 10 22 L 33 22" strokeWidth="10" />
+            <path d="M 190 22 L 167 22" strokeWidth="10" />
           </g>
         </svg>
       );
     case 'shield':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_5px_8px_rgba(0,0,0,0.15)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_5px_12_rgba(0,0,0,0.22)]">
+          <defs>
+            <linearGradient id="glare-shield" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+              <stop offset="30%" stopColor="#ffffff" stopOpacity="0.08" />
+              <stop offset="70%" stopColor="#ffffff" stopOpacity="0.02" />
+              <stop offset="100%" stopColor="#ffffff" stopOpacity="0.22" />
+            </linearGradient>
+          </defs>
+          <path d="M 15 22 C 8 24, -2 32, -4 44" fill="none" stroke={color} strokeWidth="2" opacity="0.65" strokeLinecap="round" />
+          <path d="M 185 22 C 192 24, 202 32, 204 44" fill="none" stroke={color} strokeWidth="2" opacity="0.65" strokeLinecap="round" />
+          
           <g stroke={color} strokeLinejoin="round" strokeLinecap="round">
-            {/* Unified visor Shield lens panel */}
+            {/* Unified Shield Visor */}
             <path 
-              d="M 16 22 C 50 18, 150 18, 184 22 C 188 44, 172 65, 144 65 C 100 65, 100 52, 100 52 C 100 52, 100 65, 56 65 C 28 65, 12 44, 16 22 Z" 
-              fill="rgba(15,23,42,0.12)" 
+              d="M 22 22 C 55 18, 145 18, 178 22 C 182 44, 166 65, 140 65 C 100 65, 100 52, 100 52 C 100 52, 100 65, 60 65 C 34 65, 18 44, 22 22 Z" 
+              fill="url(#glare-shield)" 
               strokeWidth="4"
             />
-            {/* Top rim strip */}
-            <path d="M 18 22 C 60 19, 140 19, 182 22" fill="none" strokeWidth="6" />
+            {/* Top rim accent wire */}
+            <path d="M 22 22 C 60 19, 140 19, 178 22" fill="none" strokeWidth="6" />
+            <path d="M 30 25 C 70 21, 130 21, 170 25" fill="none" stroke="#ffffff" strokeWidth="1.5" opacity="0.45" />
           </g>
         </svg>
       );
@@ -1063,10 +1209,10 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
                     
                     {/* Live Canvas panel previewer */}
-                    <div className="lg:col-span-12 xl:col-span-5 bg-stone-50 p-4 rounded-2xl border border-stone-200 flex flex-col items-center justify-center relative overflow-hidden">
+                    <div className="md:col-span-5 bg-stone-50 p-4 rounded-2xl border border-stone-200 flex flex-col gap-4 relative overflow-hidden md:sticky md:top-4">
                       <style>{`
                         @keyframes scanLaser {
                           0% { top: 12%; opacity: 1; }
@@ -1089,7 +1235,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                       </div>
                       
                       {/* Interactive portrait try-on board */}
-                      <div className="w-full max-w-xs bg-stone-800 border border-stone-200 rounded-xl overflow-hidden relative flex items-center justify-center select-none shadow-inner h-auto w-full group" style={{ perspective: '1000px' }}>
+                      <div className="w-full max-w-xs bg-stone-800 border border-stone-200 rounded-xl overflow-hidden relative flex items-center justify-center select-none shadow-inner h-auto group mx-auto" style={{ perspective: '1000px' }}>
                         {imageSrc ? (
                           <img 
                             ref={imgRef}
@@ -1119,7 +1265,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                               className={`absolute w-3 h-3 rounded-full border border-cyan-400 flex items-center justify-center pointer-events-none z-10 transition-all ${isScanning ? 'bg-cyan-400/80 scale-125' : 'bg-cyan-400/20'}`}
                               style={{ left: `${actualLandmarks ? actualLandmarks[36].x + (actualLandmarks[39].x - actualLandmarks[36].x)/2 : eyeCoords.x - 4.5}%`, top: `${actualLandmarks ? actualLandmarks[36].y + (actualLandmarks[39].y - actualLandmarks[36].y)/2 : eyeCoords.y}%`, transform: 'translate(-50%, -50%)' }}
                             >
-                              <span className="w-1 h-1 bg-white rounded-full animate-ping"></span>
+                              <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
                             </div>
                             
                             {/* Right Pupil */}
@@ -1127,7 +1273,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                               className={`absolute w-3 h-3 rounded-full border border-cyan-400 flex items-center justify-center pointer-events-none z-10 transition-all ${isScanning ? 'bg-cyan-400/80 scale-125' : 'bg-cyan-400/20'}`}
                               style={{ left: `${actualLandmarks ? actualLandmarks[42].x + (actualLandmarks[45].x - actualLandmarks[42].x)/2 : eyeCoords.x + 4.5}%`, top: `${actualLandmarks ? actualLandmarks[42].y + (actualLandmarks[45].y - actualLandmarks[42].y)/2 : eyeCoords.y}%`, transform: 'translate(-50%, -50%)' }}
                             >
-                              <span className="w-1 h-1 bg-white rounded-full animate-ping"></span>
+                              <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span>
                             </div>
 
                             {/* Nose Bridge */}
@@ -1181,7 +1327,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                       </div>
 
                       {/* AI Auto-Align Action Dashboard */}
-                      <div className="mt-4 w-full flex flex-col gap-2">
+                      <div className="w-full flex flex-col gap-2">
                         <div className="flex gap-2">
                           <button
                             onClick={triggerAutoScan}
@@ -1228,7 +1374,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                               setAutoAlign(false);
                               setOffsetY(0);
                               setOffsetX(0);
-                              setScale(1.12);
+                              setScale(1.0);
                               setTilt(0);
                             }}
                             className="text-[10px] text-stone-500 hover:text-stone-800 bg-white hover:bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200 transition-colors uppercase font-bold tracking-widest flex items-center gap-1.5 font-mono cursor-pointer"
@@ -1244,10 +1390,86 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                           )}
                         </div>
                       </div>
+
+                      {/* Positional Sliders calibrators (Optimized, moved right under preview) */}
+                      <div className="w-full bg-stone-100/90 p-3.5 rounded-xl border border-stone-200 space-y-3">
+                        <p className="text-[9.5px] font-black text-stone-600 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-stone-500" />
+                          {language === 'id' ? 'Kalibrasi Posisi Kacamata' : 'Adjust Placement Calibration'}
+                        </p>
+                        
+                        <div className="grid grid-cols-1 gap-2.5 text-left">
+                          {/* Offset Y */}
+                          <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px] text-stone-500 font-bold">
+                              <span>{language === 'id' ? 'Tinggikan / Turunkan (Y)' : 'Vertical Alignment (Y)'}</span>
+                              <span className="font-mono text-stone-700">{offsetY}px</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="-60" 
+                              max="60" 
+                              value={offsetY} 
+                              onChange={(e) => setOffsetY(parseInt(e.target.value))}
+                              className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-300 rounded-lg appearance-none"
+                            />
+                          </div>
+
+                          {/* Offset X */}
+                          <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px] text-stone-500 font-bold">
+                              <span>{language === 'id' ? 'Geser Kiri / Kanan (X)' : 'Horizontal Alignment (X)'}</span>
+                              <span className="font-mono text-stone-700">{offsetX}px</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="-60" 
+                              max="60" 
+                              value={offsetX} 
+                              onChange={(e) => setOffsetX(parseInt(e.target.value))}
+                              className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-300 rounded-lg appearance-none"
+                            />
+                          </div>
+
+                          {/* Scale */}
+                          <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px] text-stone-500 font-bold">
+                              <span>{language === 'id' ? 'Ukuran Lebar Kacamata' : 'Bridge Frame Width / Scale'}</span>
+                              <span className="font-mono text-stone-700">{Math.round(scale * 100)}%</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="0.75" 
+                              max="1.35" 
+                              step="0.015"
+                              value={scale} 
+                              onChange={(e) => setScale(parseFloat(e.target.value))}
+                              className="w-full accent-stone-900 cursor-pointer h-1.5 bg-stone-300 rounded-lg appearance-none"
+                            />
+                          </div>
+
+                          {/* Tilt */}
+                          <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px] text-stone-500 font-bold">
+                              <span>{language === 'id' ? 'Sudut Kemiringan' : 'Rotational Tilt'}</span>
+                              <span className="font-mono text-stone-700">{tilt}°</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="-20" 
+                              max="20" 
+                              value={tilt} 
+                              onChange={(e) => setTilt(parseInt(e.target.value))}
+                              className="w-full accent-stone-950 cursor-pointer h-1.5 bg-stone-300 rounded-lg appearance-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
                     </div>
 
                     {/* Interactive Tuning details and glasses picker list */}
-                    <div className="lg:col-span-12 xl:col-span-7 space-y-6">
+                    <div className="md:col-span-7 space-y-6">
                       
                       {/* Carousel selection of ALL shapes */}
                       <div className="space-y-2">
@@ -1359,81 +1581,6 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                               </button>
                             );
                           })}
-                        </div>
-                      </div>
-
-                      {/* Positional Sliders calibrators */}
-                      <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 space-y-4">
-                        <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
-                          <Sliders className="w-4 h-4 text-stone-400" />
-                          {language === 'id' ? 'Kalibrasi Posisi Kacamata' : 'Adjust Placement Calibration'}
-                        </p>
-                        
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
-                          {/* Offset Y */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[11px] text-stone-500 font-bold">
-                              <span>{language === 'id' ? 'Tinggikan / Turunkan (Y)' : 'Vertical Alignment (Y)'}</span>
-                              <span className="font-mono text-stone-700">{offsetY}px</span>
-                            </div>
-                            <input 
-                              type="range" 
-                              min="-100" 
-                              max="100" 
-                              value={offsetY} 
-                              onChange={(e) => setOffsetY(parseInt(e.target.value))}
-                              className="w-full accent-stone-900 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Offset X */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[11px] text-stone-500 font-bold">
-                              <span>{language === 'id' ? 'Geser Kiri / Kanan (X)' : 'Horizontal Alignment (X)'}</span>
-                              <span className="font-mono text-stone-700">{offsetX}px</span>
-                            </div>
-                            <input 
-                              type="range" 
-                              min="-100" 
-                              max="100" 
-                              value={offsetX} 
-                              onChange={(e) => setOffsetX(parseInt(e.target.value))}
-                              className="w-full accent-stone-900 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Scale */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[11px] text-stone-500 font-bold">
-                              <span>{language === 'id' ? 'Ukuran Lebar Kacamata' : 'Bridge Frame Width / Scale'}</span>
-                              <span className="font-mono text-stone-700">{Math.round(scale * 100)}%</span>
-                            </div>
-                            <input 
-                              type="range" 
-                              min="0.8" 
-                              max="1.5" 
-                              step="0.02"
-                              value={scale} 
-                              onChange={(e) => setScale(parseFloat(e.target.value))}
-                              className="w-full accent-stone-900 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Tilt */}
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[11px] text-stone-500 font-bold">
-                              <span>{language === 'id' ? 'Sudut Kemiringan' : 'Rotational Tilt'}</span>
-                              <span className="font-mono text-stone-700">{tilt}°</span>
-                            </div>
-                            <input 
-                              type="range" 
-                              min="-30" 
-                              max="30" 
-                              value={tilt} 
-                              onChange={(e) => setTilt(parseInt(e.target.value))}
-                              className="w-full accent-stone-950 cursor-pointer"
-                            />
-                          </div>
                         </div>
                       </div>
 
