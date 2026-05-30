@@ -9,15 +9,24 @@ interface ColorAnalysisModalProps {
   data: AnalysisResult;
   imageSrc: string | null;
   onClose: () => void;
+  disabledFeatures?: string[];
 }
 
 type OutfitStyle = 'hijab' | 'blazer' | 'tshirt' | 'shirt';
 type SimulatorMode = 'photo' | 'avatar';
 
-export const ColorAnalysisModal = ({ data, imageSrc, onClose }: ColorAnalysisModalProps) => {
+export const ColorAnalysisModal = ({ data, imageSrc, onClose, disabledFeatures = [] }: ColorAnalysisModalProps) => {
   const { language } = useLanguage();
   const [activeOutfit, setActiveOutfit] = useState<OutfitStyle>('hijab');
-  const [simulatorMode, setSimulatorMode] = useState<SimulatorMode>('photo');
+  const [simulatorMode, setSimulatorMode] = useState<SimulatorMode>(
+    disabledFeatures.includes('color_original') ? 'avatar' : 'photo'
+  );
+
+  useEffect(() => {
+    if (disabledFeatures.includes('color_original') && simulatorMode === 'photo') {
+      setSimulatorMode('avatar');
+    }
+  }, [disabledFeatures, simulatorMode]);
   
   // Try-on calibration states
   const [shirtColor, setShirtColor] = useState<{ r: number; g: number; b: number } | null>(null);
@@ -130,10 +139,14 @@ export const ColorAnalysisModal = ({ data, imageSrc, onClose }: ColorAnalysisMod
             { name: language === 'id' ? 'Kelabu Perak' : 'Silver Gray', hex: '#C2C5CC' }
           ],
           accessories: [
-            { name: language === 'id' ? 'Perhiasan Perak' : 'Silver Jewelry', desc: 'Silver, Platinum, White Gold' },
-            { name: language === 'id' ? 'Tas Slate / Pastel' : 'Muted Bag', desc: 'Soft Mauve, Slate Blue' },
-            { name: language === 'id' ? 'Syal Muted' : 'Cool Scarf', desc: 'Soft Lavender, Sage' },
-            { name: language === 'id' ? 'Kacamata Abu' : 'Gray/Taupe Frames', desc: 'Muted grey frames match' }
+            { name: language === 'id' ? 'Perhiasan Perak' : 'Silver Jewelry', desc: 'Silver, Platinum, White Gold', emoji: '💍' },
+            { name: language === 'id' ? 'Tas Slate / Pastel' : 'Muted Bag', desc: 'Soft Mauve, Slate Blue', emoji: '👜' },
+            { name: language === 'id' ? 'Syal Muted' : 'Cool Scarf', desc: 'Soft Lavender, Sage', emoji: '🧣' },
+            { name: language === 'id' ? 'Kacamata Abu' : 'Gray/Taupe Frames', desc: 'Muted grey frames match', emoji: '👓' },
+            { name: language === 'id' ? 'Topi Beanie' : 'Beanie Hat', desc: 'Cool grey or icy tone', emoji: '🧢' },
+            { name: language === 'id' ? 'Sabuk Kulit Hitam' : 'Black Leather Belt', desc: 'Clean, minimalist lines', emoji: '🥋' },
+            { name: language === 'id' ? 'Payung Elegan' : 'Elegant Umbrella', desc: 'Sleek silver or navy', emoji: '☂️' },
+            { name: language === 'id' ? 'Jam Tangan' : 'Metal Watch', desc: 'Stainless steel band', emoji: '⌚' }
           ],
           tips: language === 'id' ? [
             'Gunakan warna kalem, dingin, dan muted',
@@ -162,10 +175,14 @@ export const ColorAnalysisModal = ({ data, imageSrc, onClose }: ColorAnalysisMod
             { name: 'True Navy', hex: '#1E3A8A' }
           ],
           accessories: [
-            { name: 'White Gold / Gem', desc: 'Diamante, Platinum, White Gold' },
-            { name: 'Bold Onyx Bag', desc: 'Shiny black or intense cobalt' },
-            { name: 'Royal Scarf', desc: 'Emerald, Sapphire shades' },
-            { name: 'Sharp Black Frames', desc: 'High-contrast definition' }
+            { name: 'White Gold / Gem', desc: 'Diamante, Platinum, White Gold', emoji: '💍' },
+            { name: 'Bold Onyx Bag', desc: 'Shiny black or intense cobalt', emoji: '👜' },
+            { name: 'Royal Scarf', desc: 'Emerald, Sapphire shades', emoji: '🧣' },
+            { name: 'Sharp Black Frames', desc: 'High-contrast definition', emoji: '🕶️' },
+            { name: 'Leather Gloves', desc: 'Deep black or berry red', emoji: '🧤' },
+            { name: 'Silver Belt', desc: 'With a bold, shiny buckle', emoji: '🥋' },
+            { name: 'Statement Watch', desc: 'Diamond encrusted or matte black', emoji: '⌚' },
+            { name: 'Chic Heels / Shoes', desc: 'Patent black or icy white', emoji: '👠' }
           ],
           tips: language === 'id' ? [
             'Pilihlah warna dingin baur dan kontras tajam',
@@ -194,10 +211,14 @@ export const ColorAnalysisModal = ({ data, imageSrc, onClose }: ColorAnalysisMod
             { name: 'Warm Taupe', hex: '#B38B6D' }
           ],
           accessories: [
-            { name: 'Warm Gold / Bronze', desc: 'Bright yellow or brushed gold' },
-            { name: 'Terracotta Bag', desc: 'Rich brown or earth clay red' },
-            { name: 'Mustard Scarf', desc: 'Ochre, Sage or Camel shades' },
-            { name: 'Tortoiseshell Frames', desc: 'Warm mottled amber frames' }
+            { name: 'Warm Gold / Bronze', desc: 'Bright yellow or brushed gold', emoji: '👑' },
+            { name: 'Terracotta Bag', desc: 'Rich brown or earth clay red', emoji: '👜' },
+            { name: 'Mustard Scarf', desc: 'Ochre, Sage or Camel shades', emoji: '🧣' },
+            { name: 'Tortoiseshell Frames', desc: 'Warm mottled amber frames', emoji: '👓' },
+            { name: 'Leather Boots', desc: 'Deep warm brown/camel', emoji: '🥾' },
+            { name: 'Copper Bracelet', desc: 'Earthy metallic finish', emoji: '✨' },
+            { name: 'Fedora Hat', desc: 'Warm rust or olive drab', emoji: '👒' },
+            { name: 'Wooden Watch', desc: 'Natural wood grain band', emoji: '⌚' }
           ],
           tips: language === 'id' ? [
             'Gunakan nada warna hangat dan bersahaja',
@@ -227,10 +248,14 @@ export const ColorAnalysisModal = ({ data, imageSrc, onClose }: ColorAnalysisMod
             { name: 'Golden Khaki', hex: '#F0E68C' }
           ],
           accessories: [
-            { name: 'Bright Yellow Gold', desc: 'Highly polished radiant gold' },
-            { name: 'Coral Pink Bag', desc: 'Vibrant Peach or sunny nectar' },
-            { name: 'Golden Scarf', desc: 'Clear turquoise or soft apricot' },
-            { name: 'Clear/Gold Frames', desc: 'Translucent amber/champagne' }
+            { name: 'Bright Yellow Gold', desc: 'Highly polished radiant gold', emoji: '👑' },
+            { name: 'Coral Pink Bag', desc: 'Vibrant Peach or sunny nectar', emoji: '👜' },
+            { name: 'Golden Scarf', desc: 'Clear turquoise or soft apricot', emoji: '🧣' },
+            { name: 'Clear/Gold Frames', desc: 'Translucent amber/champagne', emoji: '👓' },
+            { name: 'Delicate Bracelet', desc: 'Fine bright gold chain', emoji: '✨' },
+            { name: 'Floral Hair Tie', desc: 'Light and energetic patterns', emoji: '🎀' },
+            { name: 'Peach Sunglasses', desc: 'Warm tinted lenses', emoji: '🕶️' },
+            { name: 'Canvas Sneakers', desc: 'Light ivory or warm cream', emoji: '👟' }
           ],
           tips: language === 'id' ? [
             'Gunakan warna cerah, hangat, dan bersinar',
@@ -355,18 +380,22 @@ export const ColorAnalysisModal = ({ data, imageSrc, onClose }: ColorAnalysisMod
           <div className="flex items-center gap-4">
             {/* Mode Switcher Tabs */}
             <div className="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200">
-              <button
-                onClick={() => setSimulatorMode('photo')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${simulatorMode === 'photo' ? 'bg-white text-stone-800 shadow' : 'text-stone-500 hover:text-stone-700'}`}
-              >
-                <Camera className="w-3.5 h-3.5 text-indigo-500" /> {language === 'id' ? 'Foto Asli' : 'Virtual Try-On'}
-              </button>
-              <button
-                onClick={() => setSimulatorMode('avatar')}
-                className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${simulatorMode === 'avatar' ? 'bg-white text-stone-800 shadow' : 'text-stone-500 hover:text-stone-700'}`}
-              >
-                <Layers className="w-3.5 h-3.5 text-indigo-500" /> {language === 'id' ? 'Siluet Avatar' : 'Silhouette Outfits'}
-              </button>
+              {!disabledFeatures.includes('color_original') && (
+                <button
+                  onClick={() => setSimulatorMode('photo')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${simulatorMode === 'photo' ? 'bg-white text-stone-800 shadow' : 'text-stone-500 hover:text-stone-700'}`}
+                >
+                  <Camera className="w-3.5 h-3.5 text-indigo-500" /> {language === 'id' ? 'Foto Asli' : 'Virtual Try-On'}
+                </button>
+              )}
+              {!disabledFeatures.includes('color_silhouette') && (
+                <button
+                  onClick={() => setSimulatorMode('avatar')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${simulatorMode === 'avatar' ? 'bg-white text-stone-800 shadow' : 'text-stone-500 hover:text-stone-700'}`}
+                >
+                  <Layers className="w-3.5 h-3.5 text-indigo-500" /> {language === 'id' ? 'Siluet Avatar' : 'Silhouette Outfits'}
+                </button>
+              )}
             </div>
 
             {/* Avatar Outfit style toggle only shows under Avatar simulatorMode */}

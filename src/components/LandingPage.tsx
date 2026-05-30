@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, Shield, Compass, Palette, Heart, Users, ArrowRight, ArrowUpRight, CheckCircle2, Activity, Award, Glasses, FileText } from 'lucide-react';
 import { UserRole } from '../types';
+import { doc, onSnapshot, db, collection } from '../firebase';
 
 import { FaceShapeQuiz } from './FaceShapeQuiz';
 
@@ -15,9 +16,39 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ currentUser, onStartAsGuest, onOpenLogIn, onOpenDashboard, language }) => {
   const isEn = language === 'en';
+  const [totalScans, setTotalScans] = useState<number>(0);
+
+  useEffect(() => {
+    let currentTotal = 0;
+
+    const unsub = onSnapshot(doc(db, 'stats', 'overview'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (data.totalScans && data.totalScans > currentTotal) {
+          currentTotal = data.totalScans;
+          setTotalScans(currentTotal);
+        }
+      }
+    }, (error) => {
+      console.warn("Could not fetch global stats", error);
+    });
+    return () => unsub();
+  }, []);
+
+  const formatStats = (num: number) => {
+    if (num >= 1000000) {
+      return Math.floor(num / 1000000) + 'm+';
+    }
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1).replace('.0', '') + 'k+';
+    }
+    return num.toString();
+  };
+
+  const displayScans = totalScans > 0 ? formatStats(totalScans) : '0';
 
   const stats = [
-    { value: '150k+', label: isEn ? 'Faces Scanned' : 'Wajah Teranalisis', desc: isEn ? 'Secure clinical queries processed' : 'Kueri klinis diproses aman' },
+    { value: displayScans, label: isEn ? 'Faces Scanned' : 'Wajah Teranalisis', desc: isEn ? 'Real-time clinical queries' : 'Kueri klinis secara waktu nyata' },
     { value: '98.4%', label: isEn ? 'AI Accuracy Metric' : 'Akurasi Deteksi AI', desc: isEn ? 'Skin diagnosis precision' : 'Presisi diagnosis tipe kulit' },
     { value: '4.9 ★', label: isEn ? 'Client Rating' : 'Kepuasan Pengguna', desc: isEn ? 'Highly rated aesthetic insights' : 'Saran estetika teruji klinis' },
     { value: '3+', label: isEn ? 'Bespoke User Roles' : 'Peran Akses Terstruktur', desc: isEn ? 'Client, Consultant, and Admin' : 'Klien, Konsultan & Admin Utama' }
@@ -48,11 +79,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ currentUser, onStartAs
       icon: <FileText className="w-6 h-6 text-emerald-500" />,
       title: isEn ? 'Aesthetic Clinical PDF Reports' : 'Export Laporan Klinis PDF',
       desc: isEn ? 'Generate comprehensive 4-page clinical-grade visual dossiers analyzing facial symmetry, aesthetic colors, and spatial recommendations.' : 'Hasilkan buku laporan diagnosis kecantikan 4-halaman mencakup rasio simetri, analisis palet warna, dan panduan presisi geometri.'
-    },
-    {
-      icon: <Shield className="w-6 h-6 text-amber-500" />,
-      title: isEn ? 'Expert Clinic Integration' : 'Integrasi Spesialis Estetika',
-      desc: isEn ? 'Direct annotation capabilities where certified medical consultants review AI charts and write bespoke notes.' : 'Kemampuan anotasi rujukan di mana konsultan kecantikan bersertifikat meninjau bagan dan menyertakan saran resep aktual.'
     }
   ];
 
@@ -200,7 +226,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ currentUser, onStartAs
 
         <div className="grid sm:grid-cols-2 gap-6">
           {features.map((feat, i) => (
-            <div key={i} className="p-6 bg-white border border-slate-200/50 rounded-2xl hover:border-pink-200 transition-colors shadow-sm flex gap-4">
+            <div key={i} className={`p-6 bg-white border border-slate-200/50 rounded-2xl hover:border-pink-200 transition-colors shadow-sm flex gap-4 ${i === features.length - 1 ? 'sm:col-span-2 mx-auto max-w-2xl w-full' : ''}`}>
               <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0">
                 {feat.icon}
               </div>

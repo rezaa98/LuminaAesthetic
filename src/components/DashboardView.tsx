@@ -19,6 +19,7 @@ interface DashboardViewProps {
   imageSrc?: string | null;
   consultantNotes?: string;
   consultantName?: string;
+  disabledFeatures?: string[];
 }
 
 export function DashboardView({
@@ -28,6 +29,7 @@ export function DashboardView({
   imageSrc,
   consultantNotes,
   consultantName,
+  disabledFeatures = [],
 }: DashboardViewProps) {
   const { lang, language } = useLanguage();
   const [showTypeModal, setShowTypeModal] = useState(false);
@@ -49,18 +51,41 @@ export function DashboardView({
     const prefetchFeatures = async () => {
       setIsDetailedFaceLoading(true);
       try {
-        let fileBlob = await fetch(imageSrc).then(r => r.blob());
+      let fileBlob: Blob;
+      try {
+        if (imageSrc.startsWith('data:')) {
+          const byteString = atob(imageSrc.split(',')[1]);
+          const mimeString = imageSrc.split(',')[0].split(':')[1].split(';')[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          fileBlob = new Blob([ab], { type: mimeString });
+        } else {
+          fileBlob = await fetch(imageSrc).then(r => r.blob());
+        }
+      } catch (err) {
+        console.error("Failed to convert imageSrc to blob:", err);
+        throw err;
+      }
 
-        const preferredModel = localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash';
-        const formData = new FormData();
-        formData.append('image', fileBlob, 'image.jpg');
-        formData.append('language', language);
-        formData.append('preferredModel', preferredModel);
+      const preferredModel = localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash';
+      const formData = new FormData();
+      formData.append('image', fileBlob, 'image.jpg');
+      formData.append('language', language);
+      formData.append('preferredModel', preferredModel);
 
-        const res = await fetch('/api/analyze-features', {
+      let res: Response;
+      try {
+        res = await fetch('/api/analyze-features', {
           method: 'POST',
           body: formData
         });
+      } catch (err) {
+        console.error("Failed to fetch /api/analyze-features (network error):", err);
+        throw err;
+      }
         
         if (res.ok) {
           const resData = await res.json();
@@ -349,18 +374,20 @@ export function DashboardView({
     >
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-slate-800">{lang.scanResult || 'Analysis Result'}</h2>
-        <button
-          onClick={handleDownloadReport}
-          disabled={isDownloading}
-          className="bg-pink-50 text-pink-600 px-3 py-1.5 rounded-lg text-sm font-bold border border-pink-100 hover:bg-pink-100 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isDownloading ? (
-            <Loader size={16} className="animate-spin" />
-          ) : (
-            <Download size={16} />
-          )}
-          {isDownloading ? lang.generating : lang.downloadReport}
-        </button>
+        {!disabledFeatures.includes('export_report') && (
+          <button
+            onClick={handleDownloadReport}
+            disabled={isDownloading}
+            className="bg-pink-50 text-pink-600 px-3 py-1.5 rounded-lg text-sm font-bold border border-pink-100 hover:bg-pink-100 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isDownloading ? (
+              <Loader size={16} className="animate-spin" />
+            ) : (
+              <Download size={16} />
+            )}
+            {isDownloading ? lang.generating : lang.downloadReport}
+          </button>
+        )}
       </div>
 
       {/* 0. Professional Consultant / Aesthetic Clinician Notes Section */}
@@ -441,12 +468,16 @@ export function DashboardView({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 pb-6"
+        className="flex-1 flex flex-col gap-4 lg:gap-5 pb-6"
       >
-        {/* 1. Skin Analysis */}
+        <div className="flex flex-col md:flex-row gap-4 lg:gap-5">
+  {/* Left Column */}
+  <div className="flex-1 flex flex-col gap-4 lg:gap-5 min-w-0">
+{/* 1. Skin Analysis */}
+        {!disabledFeatures.includes('skin_analysis') && (
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl border border-pink-100 p-3 sm:p-4 shadow-sm col-span-1 xl:col-span-1 md:row-span-1 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group"
+          className="bg-white rounded-xl border border-pink-100 p-3 sm:p-4 shadow-sm cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group"
           data-testid="card-skin-analysis"
           onClick={() => setShowSkinAnalysisModal(true)}
         >
@@ -473,11 +504,252 @@ export function DashboardView({
             </div>
           </div>
         </motion.div>
+        )}
 
-        {/* 2. Skin Type Comparison */}
+        {/* 3. Face Feature Analysis */}
+        {!disabledFeatures.includes('face_analysis') && (
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 shadow-sm col-span-1 md:row-span-1 flex flex-col"
+          className="bg-slate-900 text-white rounded-xl p-3 sm:p-4 shadow-xl flex flex-col cursor-pointer hover:shadow-2xl hover:scale-[1.01] transition-all relative overflow-hidden group"
+          data-testid="card-face-feature"
+          onClick={() => setShowFaceFeatureModal(true)}
+        >
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+             <ScanFace className="w-4 h-4 text-slate-500" />
+          </div>
+          <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-500 mb-3 sm:mb-4 tracking-wider">
+            {lang.faceGeometry || 'Geometry Analysis'}
+          </h3>
+          <div className="flex-1 flex flex-col gap-5 sm:gap-6 pt-1">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-pink-500 shrink-0 shadow-[0_0_8px_rgba(236,72,153,0.8)]"></div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-400">{lang.faceShape || 'Shape'}</p>
+                  <p className="text-base font-bold text-white leading-tight mt-0.5">
+                    {data.faceFeatures.shape}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-pink-500 shrink-0"></div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-400">{lang.eyes || 'Eyes'}</p>
+                  <p className="text-base font-bold text-white leading-tight mt-0.5">
+                    {data.faceFeatures.eyes}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 rounded-full bg-pink-500 shrink-0"></div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-400">{lang.jawline || 'Jaw'}</p>
+                  <p className="text-base font-bold text-white leading-tight mt-0.5">
+                    {data.faceFeatures.jawline}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* AI Facial Symmetry & Geometric Proportions */}
+            <div className="border-t border-white/5 pt-5 space-y-3">
+              <div className="flex justify-between items-center">
+                <p className="text-[11px] font-bold text-[#8ba3c7] uppercase tracking-widest">
+                  {language === 'en' ? "AI Geometric Proportions" : "Proporsi & Simetri Geometri AI"}
+                </p>
+                {isDetailedFaceLoading && (
+                  <span className="text-[8px] font-bold bg-pink-500/10 text-pink-400 px-1.5 py-0.5 rounded tracking-wide animate-pulse">
+                    AI Active
+                  </span>
+                )}
+              </div>
+              
+              {/* Symmetry Progress Bar */}
+              <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/10">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-[10px] font-bold text-pink-400 uppercase tracking-wider">
+                      {language === 'en' ? "Facial Symmetry Alignment Ratio" : "Rasio Keselarasan Simetri Wajah"}
+                    </span>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <span className={`font-mono font-black text-[10px] sm:text-[11px] md:text-xs ${isDetailedFaceLoading ? 'text-pink-400 animate-pulse' : 'text-pink-500'}`}>
+                        {(() => {
+                          const cachedScore = detailedFaceData[language]?.symmetryScore;
+                          if (cachedScore !== undefined && cachedScore !== null) return `${cachedScore.toFixed(1)}%`;
+                          return isDetailedFaceLoading 
+                            ? (language === 'en' ? "Calibrating..." : "Mengkalibrasi...") 
+                            : "88.0%";
+                        })()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full bg-pink-500 rounded-full transition-all duration-1000 ${isDetailedFaceLoading ? 'animate-pulse opacity-70' : ''}`} 
+                      style={{ 
+                        width: `${(() => {
+                          const cachedScore = detailedFaceData[language]?.symmetryScore;
+                          if (cachedScore !== undefined && cachedScore !== null) return cachedScore;
+                          return 88.0;
+                        })()}%` 
+                      }}
+                    ></div>
+                  </div>
+                </div>
+
+                {/* Sub-metrics of Symmetry to fill the empty space beautifully - Collapsible for mobile ergonomics */}
+                <div className="pt-4 border-t border-white/5 space-y-3 animate-fade-in text-left">
+                  <p className="text-[10px] font-bold text-[#8ba3c7] uppercase tracking-wider">
+                    {language === 'en' ? "Detailed Proportions Breakdown" : "RANGKUMAN RINCIAN KESEIMBANGAN ELEMEN"}
+                  </p>
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3 text-[10px]">
+                    {/* Eyebrow Alignment */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between font-semibold text-slate-300">
+                        <span>{language === 'en' ? "Eyebrow Level" : "Elevasi Garis Alis"}</span>
+                        <span className="font-mono text-white font-bold">
+                          {(() => {
+                            const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                            return `${Math.round(score * 0.98)}%`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-indigo-500 rounded-full transition-all duration-700" 
+                          style={{ 
+                            width: `${(() => {
+                              const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                              return Math.round(score * 0.98);
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Eye Alignment */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between font-semibold text-slate-300">
+                        <span>{language === 'en' ? "Eye Alignment" : "Kesejajaran Horizontal Mata"}</span>
+                        <span className="font-mono text-white font-bold">
+                          {(() => {
+                            const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                            const val = Math.round(score * 1.01);
+                            return `${val > 100 ? 100 : val}%`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-blue-400 rounded-full transition-all duration-700" 
+                          style={{ 
+                            width: `${(() => {
+                              const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                              const val = Math.round(score * 1.01);
+                              return val > 100 ? 100 : val;
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Lips & Nose Balance */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between font-semibold text-slate-300">
+                        <span>{language === 'en' ? "Mouth & Nose" : "Garis Bibir & Sumbu Hidung"}</span>
+                        <span className="font-mono text-white font-bold">
+                          {(() => {
+                            const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                            return `${Math.round(score * 0.96)}%`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-pink-500 rounded-full transition-all duration-700" 
+                          style={{ 
+                            width: `${(() => {
+                              const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                              return Math.round(score * 0.96);
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+
+                    {/* Jaw / Chin balance */}
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between font-semibold text-slate-300">
+                        <span>{language === 'en' ? "Jaw Contour" : "Simetri Kontur Dagu"}</span>
+                        <span className="font-mono text-white font-bold">
+                          {(() => {
+                            const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                            return `${Math.round(score * 0.99)}%`;
+                          })()}
+                        </span>
+                      </div>
+                      <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-emerald-400 rounded-full transition-all duration-700" 
+                          style={{ 
+                            width: `${(() => {
+                              const score = detailedFaceData[language]?.symmetryScore || 88.0;
+                              return Math.round(score * 0.99);
+                            })()}%` 
+                          }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Proportions Metrics Cards */}
+              <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 text-left">
+                <div className="p-2 sm:p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col justify-between">
+                  <p className="text-[#8ba3c7] text-[9px] font-bold uppercase tracking-wider">
+                    {language === 'en' ? "HORIZONTAL GRID" : "GRID HORIZONTAL"}
+                  </p>
+                  <p className="font-bold text-white mt-1 text-[11px] leading-tight">
+                    {language === 'en' ? "Highly Balanced Alignment" : "Kesejajaran Simetris Presisi"}
+                  </p>
+                </div>
+                <div className="p-2 sm:p-3 bg-white/5 rounded-xl border border-white/5 flex flex-col justify-between">
+                  <p className="text-[#8ba3c7] text-[9px] font-bold uppercase tracking-wider">
+                    {language === 'en' ? "GOLDEN RATIO" : "RASIO EMAS WAJAH"}
+                  </p>
+                  <p className="font-bold text-white mt-1 text-[11px] leading-tight">
+                    {(() => {
+                      const shape = data.faceFeatures.shape.toUpperCase();
+                      if (shape.includes('ROUND') || shape.includes('BULAT')) return "1 : 1.58 (Optimal)";
+                      if (shape.includes('OVAL')) return "1 : 1.618 (Ideal)";
+                      if (shape.includes('SQUARE') || shape.includes('KOTAK')) return "1 : 1.55 (Stabil)";
+                      return "1 : 1.61 (Harmonis)";
+                    })()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-auto p-3 bg-white/5 rounded-xl border border-white/5">
+              <p className="text-[10px] leading-relaxed text-slate-300 italic">
+                "{data.faceFeatures.summary || 'Karakteristik wajah yang unik dan fleksibel untuk berbagai penyesuaian gaya kacamata dan rambut.'}"
+              </p>
+            </div>
+          </div>
+        </motion.div>
+        )}
+
+          </div>
+
+  {/* Right Column */}
+  <div className="flex-1 flex flex-col gap-4 lg:gap-5 min-w-0">
+{/* 2. Skin Type Comparison */}
+        {!disabledFeatures.includes('skin_analysis') && (
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-xl border border-slate-100 p-3 sm:p-4 shadow-sm flex flex-col"
           data-testid="card-skin-type"
         >
           <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 mb-1.5 sm:mb-2 tracking-wider">
@@ -502,254 +774,13 @@ export function DashboardView({
             {data.skinType.description}
           </p>
         </motion.div>
-
-        {/* 3. Face Feature Analysis */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-slate-900 text-white rounded-xl p-3 sm:p-4 shadow-xl col-span-1 md:row-span-2 flex flex-col cursor-pointer hover:shadow-2xl hover:scale-[1.01] transition-all relative overflow-hidden group"
-          data-testid="card-face-feature"
-          onClick={() => setShowFaceFeatureModal(true)}
-        >
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
-             <ScanFace className="w-4 h-4 text-slate-500" />
-          </div>
-          <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-500 mb-3 sm:mb-4 tracking-wider">
-            {lang.faceGeometry || 'Geometry Analysis'}
-          </h3>
-          <div className="flex-1 flex flex-col gap-3 sm:gap-4">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-pink-500 shrink-0 shadow-[0_0_8px_rgba(236,72,153,0.8)]"></div>
-                <div className="min-w-0">
-                  <p className="text-[9px] text-slate-400">{lang.faceShape || 'Shape'}</p>
-                  <p className="text-[11px] font-bold truncate">
-                    {data.faceFeatures.shape}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-pink-500 shrink-0"></div>
-                <div className="min-w-0">
-                  <p className="text-[9px] text-slate-400">{lang.eyes || 'Eyes'}</p>
-                  <p className="text-[11px] font-bold truncate">
-                    {data.faceFeatures.eyes}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-pink-500 shrink-0"></div>
-                <div className="min-w-0">
-                  <p className="text-[9px] text-slate-400">{lang.jawline || 'Jaw'}</p>
-                  <p className="text-[11px] font-bold truncate">
-                    {data.faceFeatures.jawline}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* AI Facial Symmetry & Geometric Proportions */}
-            <div className="border-t border-white/10 pt-3 mt-1.5 space-y-2">
-              <div className="flex justify-between items-center">
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-[#64748b]">
-                  {language === 'en' ? "AI Geometric Proportions" : "Proporsi & Simetri Geometri AI"}
-                </p>
-                {isDetailedFaceLoading && (
-                  <span className="text-[8px] font-bold bg-pink-500/10 text-pink-400 px-1.5 py-0.5 rounded tracking-wide animate-pulse">
-                    AI Active
-                  </span>
-                )}
-              </div>
-              
-              {/* Symmetry Progress Bar */}
-              <div className="space-y-1 bg-white/5 p-2.5 sm:p-3 rounded-xl border border-white/5">
-                <div className="flex justify-between items-center text-[10.5px]">
-                  <span className="text-slate-300 font-medium truncate">
-                    {language === 'en' ? "Facial Symmetry Score" : "Simetri Wajah"}
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className={`font-mono font-black text-xs sm:text-sm ${isDetailedFaceLoading ? 'text-pink-400 animate-pulse' : 'text-pink-500'}`}>
-                      {(() => {
-                        const cachedScore = detailedFaceData[language]?.symmetryScore;
-                        if (cachedScore !== undefined && cachedScore !== null) return `${cachedScore.toFixed(1)}%`;
-                        return isDetailedFaceLoading 
-                          ? (language === 'en' ? "Calibrating..." : "Mengkalibrasi...") 
-                          : "93.8%";
-                      })()}
-                    </span>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setIsDetailedSymmetryExpanded(!isDetailedSymmetryExpanded);
-                      }}
-                      className="p-1 rounded bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors"
-                      title={language === 'id' ? 'Detail Proporsi' : 'Detail Proportions'}
-                    >
-                      {isDetailedSymmetryExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-                    </button>
-                  </div>
-                </div>
-                <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full bg-gradient-to-r from-pink-500 to-rose-500 rounded-full transition-all duration-1000 ${isDetailedFaceLoading ? 'animate-pulse opacity-70' : ''}`} 
-                    style={{ 
-                      width: `${(() => {
-                        const cachedScore = detailedFaceData[language]?.symmetryScore;
-                        if (cachedScore !== undefined && cachedScore !== null) return cachedScore;
-                        return 93.8;
-                      })()}%` 
-                    }}
-                  ></div>
-                </div>
-
-                {/* Sub-metrics of Symmetry to fill the empty space beautifully - Collapsible for mobile ergonomics */}
-                {isDetailedSymmetryExpanded && (
-                  <div className="mt-2.5 pt-2.5 border-t border-white/5 space-y-2 animate-fade-in text-left">
-                    <p className="text-[8px] font-bold text-[#64748b] uppercase tracking-wider">
-                      {language === 'en' ? "Detailed Proportions Breakdown" : "Rangkuman Rincian Keseimbangan Elemen"}
-                    </p>
-                    <div className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[9.5px]">
-                      {/* Eyebrow Alignment */}
-                      <div className="space-y-0.5">
-                        <div className="flex justify-between text-[8px] font-semibold text-slate-400">
-                          <span>{language === 'en' ? "Eyebrow Level" : "Elevasi Garis Alis"}</span>
-                          <span className="font-mono text-slate-200 font-bold">
-                            {(() => {
-                              const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                              return `${Math.round(score * 0.98)}%`;
-                            })()}
-                          </span>
-                        </div>
-                        <div className="h-0.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-indigo-500 rounded-full transition-all duration-700" 
-                            style={{ 
-                              width: `${(() => {
-                                const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                                return Math.round(score * 0.98);
-                              })()}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Eye Alignment */}
-                      <div className="space-y-0.5">
-                        <div className="flex justify-between text-[8px] font-semibold text-slate-400">
-                          <span>{language === 'en' ? "Eye Alignment" : "Horizontal Mata"}</span>
-                          <span className="font-mono text-slate-200 font-bold">
-                            {(() => {
-                              const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                              const val = Math.round(score * 1.01);
-                              return `${val > 100 ? 100 : val}%`;
-                            })()}
-                          </span>
-                        </div>
-                        <div className="h-0.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-blue-400 rounded-full transition-all duration-700" 
-                            style={{ 
-                              width: `${(() => {
-                                const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                                const val = Math.round(score * 1.01);
-                                return val > 100 ? 100 : val;
-                              })()}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Lips & Nose Balance */}
-                      <div className="space-y-0.5">
-                        <div className="flex justify-between text-[8px] font-semibold text-slate-400">
-                          <span>{language === 'en' ? "Mouth & Nose" : "Bibir & Sumbu Hidung"}</span>
-                          <span className="font-mono text-slate-200 font-bold">
-                            {(() => {
-                              const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                              return `${Math.round(score * 0.96)}%`;
-                            })()}
-                          </span>
-                        </div>
-                        <div className="h-0.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-pink-500 rounded-full transition-all duration-700" 
-                            style={{ 
-                              width: `${(() => {
-                                const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                                return Math.round(score * 0.96);
-                              })()}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Jaw / Chin balance */}
-                      <div className="space-y-0.5">
-                        <div className="flex justify-between text-[8px] font-semibold text-slate-400">
-                          <span>{language === 'en' ? "Jaw Contour" : "Kontur Dagu"}</span>
-                          <span className="font-mono text-slate-200 font-bold">
-                            {(() => {
-                              const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                              return `${Math.round(score * 0.99)}%`;
-                            })()}
-                          </span>
-                        </div>
-                        <div className="h-0.5 bg-slate-800 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-emerald-500 rounded-full transition-all duration-700" 
-                            style={{ 
-                              width: `${(() => {
-                                const score = detailedFaceData[language]?.symmetryScore || 93.8;
-                                return Math.round(score * 0.99);
-                              })()}%` 
-                            }}
-                          ></div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Proportions Metrics Cards */}
-              <div className="grid grid-cols-2 gap-2 text-[10px] pt-1 text-left">
-                <div className="p-2 bg-white/5 rounded-xl border border-white/5 flex flex-col justify-between">
-                  <p className="text-[#64748b] text-[8px] font-bold uppercase tracking-wider">
-                    {language === 'en' ? "HORIZONTAL GRID" : "GRID HORIZONTAL"}
-                  </p>
-                  <p className="font-bold text-slate-200 mt-0.5 text-[10px] leading-tight">
-                    {language === 'en' ? "Highly Balanced Alignment" : "Kesejajaran Simetris Presisi"}
-                  </p>
-                </div>
-                <div className="p-2 bg-white/5 rounded-xl border border-white/5 flex flex-col justify-between">
-                  <p className="text-[#64748b] text-[8px] font-bold uppercase tracking-wider">
-                    {language === 'en' ? "GOLDEN RATIO" : "RASIO EMAS WAJAH"}
-                  </p>
-                  <p className="font-bold text-slate-200 mt-0.5 text-[10px] leading-tight">
-                    {(() => {
-                      const shape = data.faceFeatures.shape.toUpperCase();
-                      if (shape.includes('ROUND') || shape.includes('BULAT')) return "1 : 1.58 (Optimal)";
-                      if (shape.includes('OVAL')) return "1 : 1.618 (Ideal)";
-                      if (shape.includes('SQUARE') || shape.includes('KOTAK')) return "1 : 1.55 (Stabil)";
-                      return "1 : 1.61 (Harmonis)";
-                    })()}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-auto p-3 bg-white/5 rounded-lg border border-white/10">
-              <p className="text-[11px] leading-relaxed text-slate-300 italic">
-                "{data.faceFeatures.summary || 'Karakteristik wajah yang unik dan fleksibel untuk berbagai penyesuaian gaya kacamata dan rambut.'}"
-              </p>
-            </div>
-          </div>
-        </motion.div>
+        )}
 
         {/* 4. Face Shape & Style Guide */}
+        {!disabledFeatures.includes('shape_guide') && (
         <motion.div
            variants={itemVariants}
-           className="bg-white rounded-[14px] border border-slate-100 p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] col-span-1 md:row-span-1 flex flex-col relative overflow-hidden"
+           className="bg-white rounded-[14px] border border-slate-100 p-5 shadow-[0_2px_8px_rgba(0,0,0,0.02)] flex flex-col relative overflow-hidden"
            data-testid="card-spectacles"
         >
           {/* Subtle background flair */}
@@ -779,6 +810,7 @@ export function DashboardView({
             </div>
 
             <div className="space-y-4">
+              {!disabledFeatures.includes('shape_glasses') && (
               <div>
                 <p className="text-[9px] font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1.5 uppercase">
                   <span className="w-1.5 h-1.5 bg-pink-400 rounded-full"></span>
@@ -792,7 +824,9 @@ export function DashboardView({
                   ))}
                 </div>
               </div>
+              )}
 
+              {!disabledFeatures.includes('shape_hairstyles') && (
               <div>
                 <p className="text-[9px] font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1.5 uppercase">
                   <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>
@@ -811,9 +845,11 @@ export function DashboardView({
                   ))}
                 </div>
               </div>
+              )}
             </div>
           </div>
 
+          {!disabledFeatures.includes('ar_tryon') && (
           <button
             onClick={() => setShowGlassesModal(true)}
             className="w-full mt-auto pt-5 relative z-10 group"
@@ -826,12 +862,15 @@ export function DashboardView({
               <ScanFace className="w-4 h-4 text-stone-300 group-hover:scale-110 group-hover:text-white transition-all" />
             </div>
           </button>
+          )}
         </motion.div>
+        )}
 
         {/* 5. Color Analysis */}
+        {!disabledFeatures.includes('color_analysis') && (
         <motion.div
           variants={itemVariants}
-          className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 shadow-sm col-span-1 md:row-span-1 flex flex-col cursor-pointer hover:shadow-md transition-all group"
+          className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 shadow-sm flex flex-col cursor-pointer hover:shadow-md transition-all group"
           data-testid="card-color-analysis"
           onClick={() => setShowColorAnalysisModal(true)}
         >
@@ -886,14 +925,19 @@ export function DashboardView({
             )}
           </div>
         </motion.div>
+        )}
 
-        {/* 6. Daily Water Intake Tracker */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white rounded-xl border border-blue-100 p-4 shadow-sm col-span-1 md:col-span-2 flex flex-col"
-          data-testid="card-water-tracker"
-        >
-          <div className="flex justify-between items-center mb-4">
+          </div>
+</div>
+
+{/* 6. Daily Water Intake Tracker */}
+        {!disabledFeatures.includes('hydration_goal') && (
+          <motion.div
+            variants={itemVariants}
+            className="bg-white rounded-xl border border-blue-100 p-4 shadow-sm flex flex-col"
+            data-testid="card-water-tracker"
+          >
+            <div className="flex justify-between items-center mb-4">
             <h3 className="text-xs font-bold uppercase text-blue-400 tracking-wider">
               Daily Hydration Goal
             </h3>
@@ -984,6 +1028,7 @@ export function DashboardView({
             </div>
           )}
         </motion.div>
+        )}
       </motion.div>
 
       {/* Detailed Skin Analysis Graphic Modal */}
@@ -1414,6 +1459,7 @@ export function DashboardView({
           imageSrc={imageSrc || null}
           onClose={() => setShowGlassesModal(false)}
           onTryOnAR={onTryOnAR}
+          disabledFeatures={disabledFeatures}
         />
       )}
 
@@ -1423,6 +1469,7 @@ export function DashboardView({
           data={data}
           imageSrc={imageSrc || null}
           onClose={() => setShowColorAnalysisModal(false)}
+          disabledFeatures={disabledFeatures}
         />
       )}
 
@@ -1437,6 +1484,7 @@ export function DashboardView({
             consultantNotes={consultantNotes}
             consultantName={consultantName}
             language={language}
+            disabledFeatures={disabledFeatures}
           />
         </div>
       </div>

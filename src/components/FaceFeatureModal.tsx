@@ -107,7 +107,19 @@ export const FaceFeatureModal = ({ imageSrc, onClose, cachedData, onDataFecthed,
       setLoading(true);
       setError(null);
       try {
-        let fileBlob = await fetch(imageSrc).then(r => r.blob());
+        let fileBlob: Blob;
+        if (imageSrc.startsWith('data:')) {
+          const byteString = atob(imageSrc.split(',')[1]);
+          const mimeString = imageSrc.split(',')[0].split(':')[1].split(';')[0];
+          const ab = new ArrayBuffer(byteString.length);
+          const ia = new Uint8Array(ab);
+          for (let i = 0; i < byteString.length; i++) {
+            ia[i] = byteString.charCodeAt(i);
+          }
+          fileBlob = new Blob([ab], { type: mimeString });
+        } else {
+          fileBlob = await fetch(imageSrc).then(r => r.blob());
+        }
 
         const preferredModel = localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash';
         

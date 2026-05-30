@@ -18,7 +18,9 @@ import {
   addDoc as fbAddDoc, 
   deleteDoc as fbDeleteDoc, 
   orderBy as fbOrderBy, 
-  updateDoc as fbUpdateDoc 
+  updateDoc as fbUpdateDoc,
+  increment as fbIncrement,
+  getCountFromServer as fbGetCountFromServer
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
 
@@ -232,5 +234,21 @@ export const onSnapshot = (
   }, 0);
   
   return () => clearTimeout(timer);
+};
+
+export const increment = (n: number) => {
+  if (isFirebaseActive) return fbIncrement(n);
+  return n; // Dummy pass-through for offline
+};
+
+export const getCountFromServer = async (queryInstance: any) => {
+  if (isFirebaseActive && queryInstance && !queryInstance._isDummy) {
+    try {
+      return await fbGetCountFromServer(queryInstance);
+    } catch (e) {
+      console.error("fbGetCountFromServer failed, falling back:", e);
+    }
+  }
+  return { data: () => ({ count: 0 }) };
 };
 

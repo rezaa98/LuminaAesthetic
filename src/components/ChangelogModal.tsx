@@ -8,6 +8,63 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.56.5",
+      date: "31 May 2026",
+      changes: [
+        "Konsistensi Tipografi: Menyesuaikan ukuran font dan struktur visual judul 'Rasio Keselarasan Simetri Wajah' (text-[10px] uppercase) beserta skor metrik agar sepadan dengan proporsi panel Kecocokan Warna pada tab Analisis Warna."
+      ],
+    },
+    {
+      version: "v2.56.4",
+      date: "31 May 2026",
+      changes: [
+        "Konsistensi Tipografi: Mengecilkan ukuran font pada rangkuman geometri wajah, grid horizontal, dan rasio emas agar ukurannya seragam (text-[10px]/text-[11px]) menyamai elemen di tab Analisis Warna."
+      ],
+    },
+    {
+      version: "v2.56.3",
+      date: "31 May 2026",
+      changes: [
+        "Memperbaiki error 'Failed to fetch' saat mengambil Geometri Wajah dengan mengubah metode parsing Base64 uri lokal secara manual, untuk menghindari pemblokiran memory browser pada string Base64 yang panjang."
+      ],
+    },
+    {
+      version: "v2.56.2",
+      date: "31 May 2026",
+      changes: [
+        "Konsistensi Tipografi: Menyesuaikan ulang ukuran font pada label (text-sm) dan nilai (text-base) di panel Geometri Wajah agar selaras dan konsisten ukurannya dengan elemen antarmuka lainnya pada Dashboard."
+      ],
+    },
+    {
+      version: "v2.56.1",
+      date: "31 May 2026",
+      changes: [
+        "Konsistensi Tipografi: Mengecilkan ukuran font pada hasil analisis bentuk, mata, dan rahang di panel Geometri Wajah agar selaras dan konsisten ukurannya (text-sm/text-base) dengan elemen antarmuka lainnya pada Dashboard."
+      ],
+    },
+    {
+      version: "v2.56.0",
+      date: "31 May 2026",
+      changes: [
+        "Perbaikan Visual UI Geometri Wajah: Merombak panel 'Geometri Wajah' pada Dashboard (DashboardView.tsx) agar memiliki tata letak list vertikal presisi lengkap dengan metrik keselarasan, menyelaraskan desain dengan rancangan mock-up terbaru.",
+      ],
+    },
+    {
+      version: "v2.55.1",
+      date: "31 May 2026",
+      changes: [
+        "Memperbaiki error 'Missing or insufficient permissions' yang muncul di console terkait percobaan mengambil jumlah riwayat (getCountFromServer). Aplikasi kini menggunakan listener efisien ke totalScans dari overview statistik global untuk stabilitas yang lebih baik."
+      ],
+    },
+    {
+      version: "v2.55.0",
+      date: "30 May 2026",
+      changes: [
+        "Sistem Backend Rate Limiting berbasis IP: Mengimplementasikan sistem pengaman 'Throttling / Pembatasan Kuota' langsung dari server (server.ts) secara in-memory untuk mengelola batas permintaan analisis harian per IP Address. Fitur ini secara aktif mencegah penyalahgunaan walau melalui model private/incognito yang tidak bisa dilacak session-nya.",
+        "Log Audit IP Throttling: Menambahkan tab baru (IP Throttling Monitor) pada Admin Panel yang khusus menampilkan jejak akses beserta IP pengguna, memperlihatkan jumlah percobaan serta aksi pemblokiran/izin oleh Firewall lokal."
+      ],
+    },
+    {
       version: "v2.54.0",
       date: "29 May 2026",
       changes: [

@@ -8,6 +8,7 @@ export interface User {
   username: string;
   role: UserRole;
   createdAt: string;
+  disabledFeatures?: string[];
 }
 
 export interface AuditLog {

@@ -25,11 +25,10 @@ async function startServer() {
     const models = [
       preferredModel,
       "gemini-3.5-flash",
+      "gemini-3.1-flash-lite",
       "gemini-2.5-flash",
       "gemini-2.0-flash",
-      "gemini-2.0-flash-lite",
-      "gemini-1.5-pro",
-      "gemini-1.5-flash"
+      "gemini-2.0-flash-lite"
     ];
     
     const uniqueModels = Array.from(new Set(models.filter(Boolean)));
@@ -71,7 +70,65 @@ async function startServer() {
     throw lastError || new Error("All fallback models failed.");
   }
 
+  app.set('trust proxy', true);
   app.use(express.json({ limit: "50mb" }));
+
+  // --- IP Rate Limiting & Logs ---
+  const ipUsage = new Map<string, { count: number, date: string }>();
+  const rateLimitLogs: Array<{ time: string, ip: string, path: string, status: string, count: number }> = [];
+
+  const MAX_IP_REQUESTS_PER_DAY = 15; // Fair limit allowing for glasses checks + analyses
+
+  app.use("/api", (req, res, next) => {
+    // Only rate limit the heavy AI operations
+    if (!['/analyze', '/analyze-features', '/check-glasses'].includes(req.path)) {
+      return next();
+    }
+
+    // Get client IP address
+    const ip = req.ip || 'unknown';
+
+    const today = new Date().toISOString().split('T')[0];
+    let usage = ipUsage.get(ip);
+    
+    if (!usage || usage.date !== today) {
+      usage = { count: 0, date: today };
+    }
+
+    const logEntry = {
+      time: new Date().toISOString(),
+      ip: ip,
+      path: req.path,
+      status: '',
+      count: usage.count + 1
+    };
+
+    if (usage.count >= MAX_IP_REQUESTS_PER_DAY) {
+      logEntry.status = 'BLOCKED_RATE_LIMIT';
+      rateLimitLogs.unshift(logEntry);
+      if (rateLimitLogs.length > 500) rateLimitLogs.pop(); // Retain last 500
+      
+      return res.status(429).json({ 
+        error: "Rate Limit Exceeded", 
+        message: "You have exceeded the maximum number of AI analysis requests allowed per IP address per day. Please try again tomorrow." 
+      });
+    }
+
+    // Standard allow
+    usage.count += 1;
+    ipUsage.set(ip, usage);
+
+    logEntry.status = 'ALLOWED';
+    rateLimitLogs.unshift(logEntry);
+    if (rateLimitLogs.length > 500) rateLimitLogs.pop();
+
+    next();
+  });
+
+  app.get("/api/admin/ip-logs", (req, res) => {
+    res.json(rateLimitLogs);
+  });
+  // --------------------------------
 
   // API routes FIRST
   app.post("/api/check-glasses", upload.single("image"), async (req, res) => {
@@ -137,7 +194,7 @@ async function startServer() {
       const response = await generateContentWithFallback(preferredModel, {
         contents: [
           {
-            text: `Analyze the skin condition, gender appearance/presentation, and facial features of the person in this image. Provide a JSON response ${langStr} with:\n- skinAnalysis: hydration percentage (numeric 30 to 90), rednessLevels (Tinggi, Sedang, Rendah for ID or High, Medium, Low for EN), notes about their condition focusing on hydration and redness\n- skinType: type (Oily, Dry, Normal, or Combination), description based on facial mapping\n- facialMapping: Array of 3 zones (T-Zone, U-Zone, Chin). For each, provide \`zone\` (string, e.g. 'T-Zone'), \`condition\` (string), \`status\` (string, e.g. 'INFO', 'RAWAT', 'STABIL' for ID or 'INFO', 'TREAT', 'STABLE' for EN), \`description\` (string, reasoning based on visual analysis), \`recommendations\` (Array of short strings, actionable advice), and \`colorHint\` (must be strictly one of: 'pink', 'blue', 'emerald').\n- faceFeatures: shape (e.g., Oval, Round, Square), eyes (e.g., Almond, Monolid), jawline (e.g., Sharp, Soft curve), summary (a brief insightful styling summary ${langStr} about their face shape and flexible styles)\n- spectacles: recommendedFrames (array of strings, e.g. Cat-Eye, Round)\n- hairstyles: recommendedStyles (array of strings)\n- colorAnalysis: dominantColors (array of string for 3 best clothing colors), summary (${langStr} about which colors best suit them), detailedAnalysis (an array of objects containing colorName, colorHex (like #FF0000), compatibility ('High', 'Medium', 'Low' or ID equivalent), score (1-100), description (${langStr} explanation why this color suits them)), and accessories (an array of exactly 4 objects containing \`name\` (string, accessory name in ${langStr}), \`desc\` (string, explanation in ${langStr} matching their style, gender presentation, or season), and \`emoji\` (string, single appropriate accessory emoji like '🕶️', '⌚', '💍', '🧣', '👜', '🧢', '✨')). Ensure to tailor these 4 accessory options beautifully to the detected gender, presentation, or preferences (e.g., if presenting female, suggest chic earrings, headcovers/hijab options, delicate bags, ribbons, or scarves; if presenting male, suggest masculine metal watches, solid frames, baseball caps, ties, or silver rings; if gender-neutral or modern, provide an elegant mix of unisex premium styling accessories).\n- personalizedCarePlan: an array of objects containing a short action-oriented \`title\` and a 1-sentence \`description\` suggesting a tailored step or habit to improve aesthetic goals based on the analysis.\nFollow the response schema exactly.`
+            text: `Analyze the skin condition, gender appearance/presentation, and facial features of the person in this image. Provide a JSON response ${langStr} with:\n- skinAnalysis: hydration percentage (numeric 30 to 90), rednessLevels (Tinggi, Sedang, Rendah for ID or High, Medium, Low for EN), notes about their condition focusing on hydration and redness\n- skinType: type (Oily, Dry, Normal, or Combination), description based on facial mapping\n- facialMapping: Array of 3 zones (T-Zone, U-Zone, Chin). For each, provide \`zone\` (string, e.g. 'T-Zone'), \`condition\` (string), \`status\` (string, e.g. 'INFO', 'RAWAT', 'STABIL' for ID or 'INFO', 'TREAT', 'STABLE' for EN), \`description\` (string, reasoning based on visual analysis), \`recommendations\` (Array of short strings, actionable advice), and \`colorHint\` (must be strictly one of: 'pink', 'blue', 'emerald').\n- faceFeatures: shape (e.g., Oval, Round, Square), eyes (e.g., Almond, Monolid), jawline (e.g., Sharp, Soft curve), summary (a brief insightful styling summary ${langStr} about their face shape and flexible styles)\n- spectacles: recommendedFrames (array of strings, e.g. Cat-Eye, Round)\n- hairstyles: recommendedStyles (array of strings)\n- colorAnalysis: dominantColors (array of string for 3 best clothing colors), summary (${langStr} about which colors best suit them), detailedAnalysis (an array of objects containing colorName, colorHex (like #FF0000), compatibility ('High', 'Medium', 'Low' or ID equivalent), score (1-100), description (${langStr} explanation why this color suits them)), and accessories (an array of exactly 8 objects containing \`name\` (string, accessory name in ${langStr}), \`desc\` (string, brief explanation of compatibility in ${langStr}), and \`emoji\` (string, single appropriate accessory emoji)). Ensure to deeply diversify these 8 accessory options covering jewelry, eyewear, headwear, bags, belts, cosmetics, or clothing accents beautifully tailored to the detected gender, presentation, or preferences.\n- personalizedCarePlan: an array of objects containing a short action-oriented \`title\` and a 1-sentence \`description\` suggesting a tailored step or habit to improve aesthetic goals based on the analysis.\nFollow the response schema exactly.`
           },
           {
             inlineData: {
@@ -385,6 +442,21 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: "spa",
     });
+    
+    app.get("/api/seed-stats", async (req, res) => {
+        try {
+            const admin = require('firebase-admin');
+            if (!admin.apps.length) {
+              admin.initializeApp({ credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}')) });
+            }
+            const db = admin.firestore();
+            await db.collection('stats').doc('overview').set({ totalScans: 19 });
+            res.json({ ok: true });
+        } catch(e) {
+            res.json({ error: String(e) });
+        }
+    });
+
     app.use(vite.middlewares);
   } else {
     const distPath = path.join(process.cwd(), 'dist');

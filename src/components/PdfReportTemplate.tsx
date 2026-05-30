@@ -11,6 +11,7 @@ interface PdfReportTemplateProps {
   consultantNotes?: string;
   consultantName?: string;
   language?: 'en' | 'id';
+  disabledFeatures?: string[];
 }
 
 export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({ 
@@ -20,7 +21,8 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
   intakeHistory,
   consultantNotes,
   consultantName,
-  language = 'en'
+  language = 'en',
+  disabledFeatures = []
 }) => {
   const carePlans = data.personalizedCarePlan?.length ? data.personalizedCarePlan : [
     { title: "Hydration Strategy", description: "Target minimum daily water intake of 2000ml to improve skin elasticity and moisture barrier from within." },
@@ -463,6 +465,7 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
       </div>
 
       {/* ================= PAGE 3: PERSONAL COLOR ANALYSIS & SEASON PROFILE ================= */}
+      {!disabledFeatures.includes('color_analysis') && (
       <div className="pdf-page w-[800px] h-[1131px] bg-white p-12 text-slate-800 flex flex-col font-sans relative overflow-hidden shrink-0">
         {/* Header */}
         <div className="flex justify-between items-end border-b border-slate-200 pb-6 mb-8 shrink-0">
@@ -552,7 +555,7 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
               <div>
                 <span className="text-[10px] font-black text-slate-400 tracking-wider uppercase block mb-3">BEST ACCESSORIES (AKSESORIS PENDUKUNG TERBAIK)</span>
                 <div className="grid grid-cols-2 gap-4">
-                  {(data.colorAnalysis.accessories || details.accessories).slice(0, 2).map((acc, idx) => {
+                  {(data.colorAnalysis.accessories || details.accessories).slice(0, 4).map((acc, idx) => {
                     const descText = 'desc' in acc ? (acc as { desc: string }).desc : 'description' in acc ? (acc as { description: string }).description : '';
                     return (
                       <div key={idx} className="p-3 bg-slate-50 rounded-xl border border-slate-100/60 flex items-start gap-3">
@@ -599,6 +602,7 @@ export const PdfReportTemplate: React.FC<PdfReportTemplateProps> = ({
           <p>Page 3 of 4</p>
         </div>
       </div>
+      )}
 
       {/* Page 4 - Spectacles Guide */}
       <div className="pdf-page w-[800px] h-[1131px] bg-white p-12 text-slate-800 flex flex-col font-sans relative overflow-hidden shrink-0">

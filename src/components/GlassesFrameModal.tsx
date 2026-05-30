@@ -25,6 +25,7 @@ interface GlassesFrameModalProps {
   imageSrc: string | null;
   onClose: () => void;
   onTryOnAR?: () => void;
+  disabledFeatures?: string[];
 }
 
 export const glassesModels = [
@@ -375,7 +376,7 @@ const DynamicTempleArms = ({ color, eyeCoords, finalGlassesWidth, finalYaw, fina
   );
 };
 
-export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, onTryOnAR }: GlassesFrameModalProps) => {
+export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, onTryOnAR, disabledFeatures = [] }: GlassesFrameModalProps) => {
   const { lang, language } = useLanguage();
   const [activeTab, setActiveTab] = useState<'poster' | 'classic'>('poster');
 
@@ -793,17 +794,19 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
             <Layers className="w-3.5 h-3.5" />
             {language === 'id' ? 'Poster & Live Try-On' : 'Poster & Live Try-On'}
           </button>
-          <button
-            onClick={() => setActiveTab('classic')}
-            className={`px-4 py-2 rounded-lg text-[10.5px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5 ${
-              activeTab === 'classic' 
-                ? 'bg-stone-900 text-white shadow-md'
-                : 'text-stone-500 hover:text-stone-800 hover:bg-stone-200/50'
-            }`}
-          >
-            <Info className="w-3.5 h-3.5" />
-            {language === 'id' ? 'Info Geometris' : 'Geometrics Info'}
-          </button>
+          {!disabledFeatures.includes('shape_geometry') && (
+            <button
+              onClick={() => setActiveTab('classic')}
+              className={`px-4 py-2 rounded-lg text-[10.5px] font-bold uppercase tracking-widest transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === 'classic' 
+                  ? 'bg-stone-900 text-white shadow-md'
+                  : 'text-stone-500 hover:text-stone-800 hover:bg-stone-200/50'
+              }`}
+            >
+              <Info className="w-3.5 h-3.5" />
+              {language === 'id' ? 'Info Geometris' : 'Geometrics Info'}
+            </button>
+          )}
         </div>
 
         {/* Modal content body */}

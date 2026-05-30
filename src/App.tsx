@@ -5,7 +5,7 @@ import * as faceapi from '@vladmandic/face-api';
 import { AppState, AnalysisResult, HistoryItem, User, AuditLog, UserRole } from './types';
 import localforage from 'localforage';
 import { useLanguage } from './contexts/LanguageContext';
-import { auth, db, onAuthStateChanged, collection, query, where, onSnapshot, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, orderBy, signOut } from './firebase';
+import { auth, db, onAuthStateChanged, collection, query, where, onSnapshot, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, orderBy, signOut, increment } from './firebase';
 
 const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -404,6 +404,36 @@ export default function App() {
   }, [arModeActive, arModelsLoaded, arStream]);
 
   const handleUpload = async (file: File | null) => {
+    // Check Limits First
+    const isGuest = !currentUser;
+    const maxLimit = isGuest ? 1 : 5;
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const limitKey = 'lumina_usage_limits';
+    
+    let storedData: { date: string, count: number } = { date: today, count: 0 };
+    
+    try {
+      const raw = localStorage.getItem(limitKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed.date === today) {
+          storedData = parsed;
+        }
+      }
+    } catch(e) {}
+    
+    if (storedData.count >= maxLimit) {
+      alert(language === 'id' 
+        ? `Batas pemakaian tercapai! ${isGuest ? 'Guest dibatasi 1x' : 'User dibatasi 5x'} pemindaian per hari.` 
+        : `Usage limit reached! ${isGuest ? 'Guests are limited to 1' : 'Users are limited to 5'} scans per day.`
+      );
+      return;
+    }
+    
+    // Only save limit if they proceed
+    storedData.count += 1;
+    localStorage.setItem(limitKey, JSON.stringify(storedData));
+
     setAppState('analyzing');
     setArModeActive(false);
     if (file) {
@@ -415,6 +445,10 @@ export default function App() {
         try {
           const hasGlasses = await checkGlassesWithAI(file);
           if (hasGlasses) {
+            // Revert quota if rejected
+            storedData.count -= 1;
+            localStorage.setItem(limitKey, JSON.stringify(storedData));
+            
             setShowGlassesAlert(true);
             setAppState('upload');
             setUploadedImageURL(null);
@@ -449,6 +483,13 @@ export default function App() {
         userId: currentUser?.id || 'guest',
         userDisplayName: currentUser?.name || 'Tamu Estetika'
       });
+      
+      // Update global scan stats
+      try {
+        await setDoc(doc(db, 'stats', 'overview'), { totalScans: increment(1) }, { merge: true });
+      } catch (e) {
+        console.error("Failed to update global stats:", e);
+      }
       
       setActiveScanId(docRef.id);
 
@@ -1011,6 +1052,7 @@ export default function App() {
                   imageSrc={uploadedImageURL} 
                   consultantNotes={consultantNotes}
                   consultantName={consultantName}
+                  disabledFeatures={currentUser?.disabledFeatures || []}
                 />
               )
             )}

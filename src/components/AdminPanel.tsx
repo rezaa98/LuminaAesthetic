@@ -16,14 +16,16 @@ import {
   Download,
   Loader,
   Settings,
-  Trash2
+  Trash2,
+  Lock
 } from 'lucide-react';
 import { User, HistoryItem, AuditLog, UserRole } from '../types';
 import * as htmlToImage from 'html-to-image';
 import jsPDF from 'jspdf';
 import { PdfReportTemplate } from './PdfReportTemplate';
+import { FeatureAccessModal } from './FeatureAccessModal';
 
-import { collection, onSnapshot, query, orderBy, updateDoc, doc } from '../firebase';
+import { collection, onSnapshot, query, orderBy, updateDoc, doc, setDoc, db } from '../firebase';
 
 interface AdminPanelProps {
   currentUser: User;
@@ -44,11 +46,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   const isEn = language === 'en';
   const isSuper = currentUser.role === 'super_admin';
-  const [activeTab, setActiveTab] = useState<'directory' | 'users' | 'audits' | 'settings'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'users' | 'audits' | 'settings' | 'ip-logs'>('directory');
   
   // Local reactive states loaded from Firebase
   const [userList, setUserList] = useState<User[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [ipLogs, setIpLogs] = useState<any[]>([]);
   const [editingScanId, setEditingScanId] = useState<string | null>(null);
   const [clinicianNote, setClinicianNote] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string>('');
@@ -85,6 +88,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [selectedPdfScanItem, setSelectedPdfScanItem] = useState<HistoryItem | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [downloadingAuditPdf, setDownloadingAuditPdf] = useState<boolean>(false);
+  const [selectedUserForFeatures, setSelectedUserForFeatures] = useState<User | null>(null);
 
   // Hydrate Data on Mount
   useEffect(() => {
@@ -106,6 +110,36 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
        };
     });
   }, [currentUser]);
+
+  useEffect(() => {
+    if (history.length > 0) {
+      updateDoc(doc(db, 'stats', 'overview'), { totalScans: history.length })
+        .catch(() => {
+           setDoc(doc(db, 'stats', 'overview'), { totalScans: history.length }).catch(console.error);
+        });
+    }
+  }, [history.length]);
+
+  useEffect(() => {
+    let interval: any;
+    if (activeTab === 'ip-logs') {
+      const fetchLogs = async () => {
+        try {
+          const res = await fetch('/api/admin/ip-logs');
+          if (res.ok) {
+            const data = await res.json();
+            setIpLogs(data);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
+      
+      fetchLogs();
+      interval = setInterval(fetchLogs, 5000); // Polling every 5 seconds
+    }
+    return () => clearInterval(interval);
+  }, [activeTab]);
 
   // Handle Role Modification
   const handleChangeRole = async (userId: string, targetRole: UserRole) => {
@@ -391,6 +425,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               {isEn ? 'System Settings' : 'Pengaturan Sistem'}
             </button>
           )}
+
+          {isSuper && (
+            <button 
+              onClick={() => setActiveTab('ip-logs')}
+              className={`flex items-center gap-1.5 whitespace-nowrap font-bold tracking-tight pb-2 sm:pb-3 pt-3 border-b-2 transition-all ${activeTab === 'ip-logs' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+            >
+              <Activity className="w-4 h-4" />
+              {isEn ? 'IP Throttling Logs' : 'Log IP Throttling'}
+            </button>
+          )}
         </div>
 
         <div className="hidden sm:flex shrink-0">
@@ -641,7 +685,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <div className="flex gap-1 justify-end">
+                        <div className="flex gap-1 justify-end items-center">
+                          <button
+                            onClick={() => setSelectedUserForFeatures(usr)}
+                            className="px-2 py-1 mr-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 text-[8.5px] font-black uppercase rounded transition-colors flex items-center gap-1"
+                            title={isEn ? "Manage Feature Access" : "Kelola Akses Fitur"}
+                          >
+                            <Lock className="w-3 h-3" />
+                            {isEn ? 'Features' : 'Akses'}
+                          </button>
                           {(['user', 'admin', 'super_admin'] as UserRole[]).map((r) => (
                             <button
                               key={r}
@@ -788,15 +840,73 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-lg focus:ring-pink-500 focus:border-pink-500 block p-2.5 outline-none cursor-pointer"
                   >
                     <option value="gemini-3.5-flash">Gemini 3.5 Flash (v1beta)</option>
+                    <option value="gemini-3.1-flash-lite">Gemini 3.1 Flash Lite</option>
                     <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                     <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
                     <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                   </select>
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* TAB 5: IP LOGS */}
+        {activeTab === 'ip-logs' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between gap-4 mb-2">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-sky-500" />
+                <h3 className="font-black text-slate-800 text-sm tracking-tight">{isEn ? 'IP Throttling Monitor' : 'Monitor Throttling IP Server'}</h3>
+              </div>
+              <span className="text-xs text-slate-400 font-mono">{ipLogs.length} reqs tracker</span>
+            </div>
+            
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs font-medium text-slate-500">
+                  <thead className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase tracking-wider text-slate-400">
+                    <tr>
+                      <th className="px-4 py-3 whitespace-nowrap">Time (UTC)</th>
+                      <th className="px-4 py-3 whitespace-nowrap">IP Address</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Endpoint Path</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Action/Status</th>
+                      <th className="px-4 py-3 whitespace-nowrap">Session Req Count</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {ipLogs.length > 0 ? ipLogs.map((log, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-600 font-mono text-[10px]">
+                          {new Date(log.time).toISOString().replace('T', ' ').substring(0, 19)}
+                        </td>
+                        <td className="px-4 py-3 font-mono text-[10px] text-slate-500">
+                          {log.ip}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                          {log.path}
+                        </td>
+                        <td className="px-4 py-3 text-slate-600">
+                           <span className={`px-2 py-1 rounded inline-flex font-bold text-[9px] uppercase tracking-wider ${log.status.includes('BLOCKED') ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                             {log.status === 'ALLOWED' ? '✓ ' + log.status : '✕ ' + log.status}
+                           </span>
+                        </td>
+                        <td className="px-4 py-3 text-slate-600 font-mono text-center">
+                          {log.count}
+                        </td>
+                      </tr>
+                    )) : (
+                      <tr>
+                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400 italic">
+                          No recent rate limiting events.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            
           </div>
         )}
 
@@ -1033,6 +1143,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
           </motion.div>
         </div>
+      )}
+
+      {selectedUserForFeatures && (
+        <FeatureAccessModal 
+          user={selectedUserForFeatures}
+          onClose={() => setSelectedUserForFeatures(null)}
+          onAddAuditLog={onAddAuditLog}
+          language={language}
+        />
       )}
 
     </div>

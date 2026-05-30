@@ -18,13 +18,19 @@ service cloud.firestore {
 
     function isValidUser(data) {
         return data.keys().hasAll(['name', 'role', 'createdAt']) &&
-               data.keys().size() <= 5 &&
+               data.keys().size() <= 6 &&
                data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
                data.role is string && data.role in ['user', 'admin', 'super_admin'] &&
                data.createdAt is number &&
-               (!('username' in data) || data.get('username', '') is string);
+               (!('username' in data) || data.get('username', '') is string) &&
+               (!('disabledFeatures' in data) || data.disabledFeatures is list);
     }
 
+    match /stats/{statId} {
+      allow read: if true;
+      allow write: if true;
+    }
+    
     match /users/{userId} {
       allow get: if isValidId(userId) && isSignedIn() && (isAdmin() || request.auth.uid == userId);
       allow list: if isSignedIn() && isAdmin();
@@ -39,8 +45,10 @@ service cloud.firestore {
                     (
                       // User updating their own profile (cannot change role)
                       (request.auth.uid == userId && incoming().diff(existing()).affectedKeys().hasOnly(['name', 'username']) && incoming().role == existing().role) ||
-                      // Super admin updating someone's role
-                      (isSuperAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'name', 'username']))
+                      // Super admin updating someone's role and features
+                      (isSuperAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['role', 'name', 'username', 'disabledFeatures'])) ||
+                      // Admins updating someone's features
+                      (isAdmin() && incoming().diff(existing()).affectedKeys().hasOnly(['disabledFeatures']))
                     );
     }
     
