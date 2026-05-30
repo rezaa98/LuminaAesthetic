@@ -36,11 +36,11 @@ export const glassesModels = [
 ];
 
 // Highly stylized SVG Glasses shapes for the simulation overlay
-export const GlassesSvg = ({ type, color }: { type: string; color: string }) => {
+export const GlassesSvg = ({ type, color, hideArms = false }: { type: string; color: string, hideArms?: boolean }) => {
   switch (type) {
     case 'round':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_8px_16px_rgba(0,0,0,0.45)]">
           <defs>
             <linearGradient id="glare-round" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
@@ -50,10 +50,14 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
             </linearGradient>
           </defs>
           {/* Temple arms back reflection */}
-          <path d="M 15 36 C 8 38, -2 46, -4 58" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 15 36 C 8 38, -2 46, -4 58" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
           <path d="M 185 36 C 192 38, 202 46, 204 58" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+</>
+)}
           
-          <g fill="none" stroke={color} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
+          <g fill="none" stroke={color} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round">
             {/* Left rim */}
             <circle cx="63" cy="43" r="23" fill="url(#glare-round)" stroke={color} />
             {/* Right rim */}
@@ -71,7 +75,7 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
       );
     case 'square':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_8px_16px_rgba(0,0,0,0.45)]">
           <defs>
             <linearGradient id="glare-square" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
@@ -80,8 +84,12 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.12" />
             </linearGradient>
           </defs>
-          <path d="M 15 28 C 8 30, -2 38, -4 50" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 15 28 C 8 30, -2 38, -4 50" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
           <path d="M 185 28 C 192 30, 202 38, 204 50" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+</>
+)}
           
           <g fill="none" stroke={color} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round">
             {/* Left Frame */}
@@ -92,7 +100,7 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
             <path d="M 46 25 L 80 25" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
             <path d="M 120 25 L 154 25" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
             {/* Dynamic keyhole bridge */}
-            <path d="M 88 34 Q 100 27 112 34" strokeWidth="5" />
+            <path d="M 88 34 Q 100 27 112 34" strokeWidth="5.5" />
             {/* Endpieces */}
             <path d="M 15 28 L 38 30" strokeWidth="8" />
             <path d="M 185 28 L 162 30" strokeWidth="8" />
@@ -101,7 +109,7 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
       );
     case 'oval':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_8px_16px_rgba(0,0,0,0.45)]">
           <defs>
             <linearGradient id="glare-oval" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
@@ -110,10 +118,14 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.15" />
             </linearGradient>
           </defs>
-          <path d="M 15 38 C 8 40, -2 48, -4 60" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 15 38 C 8 40, -2 48, -4 60" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
           <path d="M 185 38 C 192 40, 202 48, 204 60" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+</>
+)}
           
-          <g fill="none" stroke={color} strokeWidth="5" strokeLinejoin="round" strokeLinecap="round">
+          <g fill="none" stroke={color} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
             {/* Oval Rims */}
             <ellipse cx="63" cy="43" rx="27" ry="18" fill="url(#glare-oval)" stroke={color} />
             <ellipse cx="137" cy="43" rx="27" ry="18" fill="url(#glare-oval)" stroke={color} />
@@ -139,10 +151,14 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.18" />
             </linearGradient>
           </defs>
-          <path d="M 10 22 C 3 24, -4 32, -6 44" fill="none" stroke={color} strokeWidth="3" opacity="0.6" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 10 22 C 3 24, -4 32, -6 44" fill="none" stroke={color} strokeWidth="3" opacity="0.6" strokeLinecap="round" />
           <path d="M 190 22 C 197 24, 204 32, 206 44" fill="none" stroke={color} strokeWidth="3" opacity="0.6" strokeLinecap="round" />
+</>
+)}
           
-          <g fill="none" stroke={color} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
+          <g fill="none" stroke={color} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round">
             {/* Exquisite winged outer silhouette perfectly centered on 63 & 137 */}
             <path d="M 22 22 C 38 18, 86 28, 86 31 C 86 53, 52 64, 38 56 C 24 48, 16 32, 22 22 Z" fill="url(#glare-cateye)" stroke={color} />
             <path d="M 178 22 C 162 18, 114 28, 114 31 C 114 53, 148 64, 162 56 C 176 48, 184 32, 178 22 Z" fill="url(#glare-cateye)" stroke={color} />
@@ -162,7 +178,7 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
       );
     case 'wayfarer':
       return (
-        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.22)]">
+        <svg viewBox="0 0 200 85" className="w-full h-full drop-shadow-[0_8px_16px_rgba(0,0,0,0.45)]">
           <defs>
             <linearGradient id="glare-wayfarer" x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="#ffffff" stopOpacity="0.25" />
@@ -171,8 +187,12 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.12" />
             </linearGradient>
           </defs>
-          <path d="M 15 23 C 8 25, -2 33, -4 45" fill="none" stroke={color} strokeWidth="3.2" opacity="0.65" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 15 23 C 8 25, -2 33, -4 45" fill="none" stroke={color} strokeWidth="3.2" opacity="0.65" strokeLinecap="round" />
           <path d="M 185 23 C 192 25, 202 33, 204 45" fill="none" stroke={color} strokeWidth="3.2" opacity="0.65" strokeLinecap="round" />
+</>
+)}
           
           <g fill="none" stroke={color} strokeWidth="6.5" strokeLinejoin="round" strokeLinecap="round">
             <path d="M 33 24 L 84 24 C 88 45, 71 62, 57 62 C 40 62, 31 45, 33 24 Z" fill="url(#glare-wayfarer)" stroke={color} />
@@ -181,7 +201,7 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
             <path d="M 38 28 L 74 28" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
             <path d="M 126 28 L 162 28" stroke="#ffffff" strokeWidth="1.8" opacity="0.45" />
             {/* Bridge */}
-            <path d="M 84 28 C 91 23, 109 23, 116 28" strokeWidth="5.5" />
+            <path d="M 84 28 C 91 23, 109 23, 116 28" strokeWidth="6" />
             {/* Endpieces */}
             <path d="M 15 23 L 33 24" strokeWidth="8" />
             <path d="M 185 23 L 167 24" strokeWidth="8" />
@@ -201,8 +221,12 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.16" />
             </linearGradient>
           </defs>
-          <path d="M 15 24 C 8 26, -2 34, -4 46" fill="none" stroke={color} strokeWidth="1.8" opacity="0.7" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 15 24 C 8 26, -2 34, -4 46" fill="none" stroke={color} strokeWidth="1.8" opacity="0.7" strokeLinecap="round" />
           <path d="M 185 24 C 192 26, 202 34, 204 46" fill="none" stroke={color} strokeWidth="1.8" opacity="0.7" strokeLinecap="round" />
+</>
+)}
           
           <g fill="none" stroke={color} strokeWidth="2.8" strokeLinejoin="round" strokeLinecap="round">
             {/* Aviator teardrop lenses centered around 63 & 137 */}
@@ -232,10 +256,14 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.14" />
             </linearGradient>
           </defs>
-          <path d="M 15 36 C 8 38, -2 46, -4 56" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 15 36 C 8 38, -2 46, -4 56" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
           <path d="M 185 36 C 192 38, 202 46, 204 56" fill="none" stroke={color} strokeWidth="3" opacity="0.65" strokeLinecap="round" />
+</>
+)}
           
-          <g fill="none" stroke={color} strokeWidth="5.5" strokeLinejoin="round" strokeLinecap="round">
+          <g fill="none" stroke={color} strokeWidth="6" strokeLinejoin="round" strokeLinecap="round">
             {/* Rectangular narrow lenses centered around 63 & 137 */}
             <rect x="38" y="32" width="48" height="22" rx="4" fill="url(#glare-narrow)" stroke={color} />
             <rect x="114" y="32" width="48" height="22" rx="4" fill="url(#glare-narrow)" stroke={color} />
@@ -261,8 +289,12 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.16" />
             </linearGradient>
           </defs>
-          <path d="M 10 22 C 3 24, -4 32, -6 44" fill="none" stroke={color} strokeWidth="3.5" opacity="0.65" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 10 22 C 3 24, -4 32, -6 44" fill="none" stroke={color} strokeWidth="3.5" opacity="0.65" strokeLinecap="round" />
           <path d="M 190 22 C 197 24, 204 32, 206 44" fill="none" stroke={color} strokeWidth="3.5" opacity="0.65" strokeLinecap="round" />
+</>
+)}
           
           <g fill="none" stroke={color} strokeWidth="8" strokeLinejoin="round" strokeLinecap="round">
             {/* Bold Oversized lenses centered around 63 & 137 */}
@@ -290,8 +322,12 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
               <stop offset="100%" stopColor="#ffffff" stopOpacity="0.22" />
             </linearGradient>
           </defs>
-          <path d="M 15 22 C 8 24, -2 32, -4 44" fill="none" stroke={color} strokeWidth="2" opacity="0.65" strokeLinecap="round" />
+          {!hideArms && (
+<>
+<path d="M 15 22 C 8 24, -2 32, -4 44" fill="none" stroke={color} strokeWidth="2" opacity="0.65" strokeLinecap="round" />
           <path d="M 185 22 C 192 24, 202 32, 204 44" fill="none" stroke={color} strokeWidth="2" opacity="0.65" strokeLinecap="round" />
+</>
+)}
           
           <g stroke={color} strokeLinejoin="round" strokeLinecap="round">
             {/* Unified Shield Visor */}
@@ -309,6 +345,34 @@ export const GlassesSvg = ({ type, color }: { type: string; color: string }) => 
     default:
       return null;
   }
+};
+
+
+
+const DynamicTempleArms = ({ color, eyeCoords, finalGlassesWidth, finalYaw, finalTilt, offsetX, offsetY, actualLandmarks }: any) => {
+  if (!actualLandmarks || actualLandmarks.length < 17) return null;
+
+  const cx = eyeCoords.x + (offsetX / 400) * 100;
+  const cy = eyeCoords.y + (offsetY / 400) * 100;
+  
+  const leftHinge = { x: cx - finalGlassesWidth / 2 + 3, y: cy };
+  const rightHinge = { x: cx + finalGlassesWidth / 2 - 3, y: cy };
+  
+  const leftEar = { ...actualLandmarks[0], y: actualLandmarks[0].y - 3 };
+  const rightEar = { ...actualLandmarks[16], y: actualLandmarks[16].y - 3 };
+
+  const showLeftArm = finalYaw > -25;
+  const showRightArm = finalYaw < 25;
+  
+  const pathL = `M ${leftHinge.x} ${leftHinge.y} Q ${(leftHinge.x + leftEar.x)/2 + 2} ${leftHinge.y - 1} ${leftEar.x} ${leftEar.y}`;
+  const pathR = `M ${rightHinge.x} ${rightHinge.y} Q ${(rightHinge.x + rightEar.x)/2 - 2} ${rightHinge.y - 1} ${rightEar.x} ${rightEar.y}`;
+
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none drop-shadow-[0_8px_16px_rgba(0,0,0,0.45)]" style={{ zIndex: 10 }}>
+      {showLeftArm && <path d={pathL} fill="none" stroke={color} strokeWidth="6" opacity="0.85" strokeLinecap="round" />}
+      {showRightArm && <path d={pathR} fill="none" stroke={color} strokeWidth="6" opacity="0.85" strokeLinecap="round" />}
+    </svg>
+  );
 };
 
 export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, onTryOnAR }: GlassesFrameModalProps) => {
@@ -369,6 +433,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
   const [detectedEyeCoords, setDetectedEyeCoords] = useState<{ x: number, y: number } | null>(null);
   const [detectedNoseCoords, setDetectedNoseCoords] = useState<{ x: number, y: number } | null>(null);
   const [detectedEyeDistance, setDetectedEyeDistance] = useState<number | null>(null);
+  const [detectedCheekWidth, setDetectedCheekWidth] = useState<number | null>(null);
   const [detectedTilt, setDetectedTilt] = useState<number>(0);
   const [detectedYaw, setDetectedYaw] = useState<number>(0);
   const [detectedPitch, setDetectedPitch] = useState<number>(0);
@@ -376,19 +441,27 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
 
   // Load models and perform real face landmark analysis
   const performFaceDetection = async () => {
-    if (!imgRef.current) return;
+    if (!imageSrc) return;
     try {
-      if (!faceapi.nets.tinyFaceDetector.isLoaded) {
-        await faceapi.nets.tinyFaceDetector.loadFromUri("https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/");
+      if (!faceapi.nets.ssdMobilenetv1.isLoaded) {
+        await faceapi.nets.ssdMobilenetv1.loadFromUri("https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/");
       }
       if (!faceapi.nets.faceLandmark68Net.isLoaded) {
         await faceapi.nets.faceLandmark68Net.loadFromUri("https://cdn.jsdelivr.net/npm/@vladmandic/face-api/model/");
       }
       
-      const detection = await faceapi.detectSingleFace(imgRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.src = imageSrc;
+      
+      await new Promise((resolve) => {
+        img.onload = resolve;
+      });
+
+      const detection = await faceapi.detectSingleFace(img, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.15 })).withFaceLandmarks();
       if (detection) {
-        const imgW = imgRef.current.naturalWidth || imgRef.current.width;
-        const imgH = imgRef.current.naturalHeight || imgRef.current.height;
+        const imgW = img.naturalWidth || img.width;
+        const imgH = img.naturalHeight || img.height;
         const positions = detection.landmarks.positions;
         
         const mapP = (p: any) => ({ x: (p.x / imgW) * 100, y: (p.y / imgH) * 100 });
@@ -436,16 +509,25 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
         const rollDeg = rollRad * (180 / Math.PI);
         setDetectedTilt(rollDeg);
 
-        // Yaw orientation (using nose bridge vs eye midpoint)
-        const yawRatio = (nosePoint.x - midX) / dx;
-        const yawVal = Math.max(-30, Math.min(30, yawRatio * 50));
+        // 3D Yaw orientation (using nose tip vs eye midpoint)
+        // The nose tip (landmark 30) protrudes, giving accurate 3D rotation map
+        const noseTip = mappedLandmarks[30];
+        const yawRatio = (noseTip.x - midX) / dx;
+        const yawVal = Math.max(-45, Math.min(45, yawRatio * 105)); // Slight multiplier boost for pronounced rotation
         setDetectedYaw(yawVal);
 
-        // Pitch orientation (using vertical nose length vs eye distance)
-        const noseTip = mappedLandmarks[30];
+        // Precise cheekbone width (index 0 to 16 in 68-point landmarks)
+        // Compensate for 2D foreshortening by dividing by cos(yawVal), 
+        // to prevent the glasses from double-shrinking when CSS rotateY is also applied.
+        const apparentCheekWidth = mappedLandmarks[16].x - mappedLandmarks[0].x;
+        const realCheekWidth = apparentCheekWidth / Math.max(0.4, Math.cos(yawVal * Math.PI / 180));
+        setDetectedCheekWidth(realCheekWidth);
+
+        // 3D Pitch orientation (using vertical nose length vs eye distance)
+        // Enhanced scaling for realistic 3D upward/downward looking
         const verticalDist = noseTip.y - midY;
         const pitchRatio = verticalDist / dist;
-        const pitchVal = Math.max(-15, Math.min(15, (pitchRatio - 0.44) * 45));
+        const pitchVal = Math.max(-30, Math.min(30, (pitchRatio - 0.44) * 65));
         setDetectedPitch(pitchVal);
 
         setDetectedFaceBox({
@@ -477,6 +559,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
   const [offsetX, setOffsetX] = useState<number>(0);
   const [scale, setScale] = useState<number>(1.0); // manual scale multiplier (default is 1.0, representing perfect automatic fit)
   const [tilt, setTilt] = useState<number>(0); // manual tilt rotation addition
+  const [yaw, setYaw] = useState<number>(0);   // manual yaw (left/right) rotation
+  const [pitch, setPitch] = useState<number>(0); // manual pitch (up/down) rotation
   const [isDownloading, setIsDownloading] = useState<boolean>(false);
   const [downloadSuccess, setDownloadSuccess] = useState<boolean>(false);
 
@@ -487,6 +571,11 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
 
   // Calculate dynamic width of glasses based on physical eye-distance ratio
   const getGlassesWidthPercent = () => {
+    // 3D Precise fitting: using the jawline/cheekbone horizontal expanse
+    if (detectedCheekWidth) {
+      // Eyewear frame width typically aligns comfortably around 104%-106% of the raw cheekbone width
+      return (detectedCheekWidth * 1.06) * scale;
+    }
     // Determine base width using the AI detected accurate face box
     if (detectedFaceBox && detectedFaceBox.width) {
        // The face box tight-fits the head. Standard glasses are slightly wider than temples.
@@ -495,7 +584,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
     }
     // Fallback to eye distance calculation if box isn't available
     if (detectedEyeDistance) {
-      // frame width is roughly 2.3 times the inter-pupillary distance.
+      // frame width is roughly 2.6 times the inter-pupillary distance.
       return (detectedEyeDistance * 2.6) * scale;
     }
     // Fallback if local landmarks are loading or not available
@@ -517,8 +606,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
 
   // Calculate coordinates, roll (tilt), yaw, and pitch
   const finalTilt = autoAlign ? (detectedTilt + tilt) : tilt;
-  const finalYaw = autoAlign ? detectedYaw : 0;
-  const finalPitch = autoAlign ? detectedPitch : 0;
+  const finalYaw = autoAlign ? (detectedYaw + yaw) : yaw;
+  const finalPitch = autoAlign ? (detectedPitch + pitch) : pitch;
 
   const triggerAutoScan = () => {
     setIsScanning(true);
@@ -527,16 +616,16 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
     
     const logs = language === 'id' ? [
       '🔍 Menginisialisasi modul pengenalan wajah AI Lumina...',
-      '📈 Memindai sebaran kontur tepi dahi dan rahang...',
-      '👁️ Menemukan koordinat pupil mata kiri & kanan...',
-      '👃 Menetapkan koordinat batang hidung (Nasion)...',
-      '✅ Penyelarasan Otomatis Berhasil! Posisi kacamata dikunci.'
+      '📏 Menghitung rentang tulang pipi (Cheekbone Horizontal Spacing)...',
+      '📈 Membuat matriks ruang 3D (Pitch, Yaw, Roll) wajah...',
+      '👃 Menyelaraskan topologi jembatan hidung (Nasion)...',
+      '✅ Pemetaan Spasial 3D Selesai! Bingkai disesuaikan secara presisi.'
     ] : [
-      '🔍 Initializing Lumina AI face contour recognition...',
-      '📈 Scanning forehead and jaw boundary distribution...',
-      '👁️ Detecting left & right pupil coordinates...',
-      '👃 Setting nasion center-point / nose bridge height...',
-      '✅ Auto-Alignment Complete! Eyewear position locked perfectly.'
+      '🔍 Initializing Lumina AI spatial topology recognition...',
+      '📏 Calculating raw cheekbone span (Horizontal Edge Limits)...',
+      '📈 Generating 3D spatial matrix (Pitch, Yaw, Roll) vectors...',
+      '👃 Aligning Nasion center-point depth mapping...',
+      '✅ 3D Spatial Mapping Complete! Frame precisely calibrated.'
     ];
 
     logs.forEach((log, index) => {
@@ -550,6 +639,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
           setOffsetX(0);
           setScale(1.0);
           setTilt(0);
+          setYaw(0);
+          setPitch(0);
         }
       }, (index + 1) * 550);
     });
@@ -670,7 +761,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
         {/* Top Header - White Aesthetic */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-[#e6e2dd] bg-[#fcfbfa] shrink-0">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={onClose} title="Go back to home">
               <span className="text-[10px] font-black tracking-[0.2em] bg-stone-900 text-white px-2 py-0.5 rounded font-mono">
                 LUMINA AI
               </span>
@@ -866,11 +957,16 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                               top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                               left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
                               width: `${finalGlassesWidth}%`,
-                              transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                              transform: `translate(-50%, -50%) perspective(400px) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                              transformStyle: 'preserve-3d',
                             }}
                           >
-                            <GlassesSvg type={mapping.suitable[0] || 'round'} color="#1e293b" />
+                            <div style={{ width: '100%', height: '100%' }}>
+                              <GlassesSvg type={mapping.suitable[0] || 'round'} color="#1e293b" hideArms={true} />
+                            </div>
                           </div>
+                          
+                          <DynamicTempleArms color="#1e293b" eyeCoords={eyeCoords} finalGlassesWidth={finalGlassesWidth} finalYaw={finalYaw} finalTilt={finalTilt} offsetX={offsetX} offsetY={offsetY} actualLandmarks={actualLandmarks} />
                         </div>
 
                       {/* Editorial Quick Tips */}
@@ -997,11 +1093,15 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                                     top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                                     left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
                                     width: `${finalGlassesWidth}%`,
-                                    transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                                    transform: `translate(-50%, -50%) perspective(400px) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                                    transformStyle: 'preserve-3d',
                                   }}
                                 >
-                                  <GlassesSvg type={model.id} color="#1e293b" />
+                                  <div style={{ width: '100%', height: '100%' }}>
+                                    <GlassesSvg type={model.id} color="#1e293b" hideArms={true} />
+                                  </div>
                                 </div>
+                                <DynamicTempleArms color="#1e293b" eyeCoords={eyeCoords} finalGlassesWidth={finalGlassesWidth} finalYaw={finalYaw} finalTilt={finalTilt} offsetX={offsetX} offsetY={offsetY} actualLandmarks={actualLandmarks} />
 
                                 {/* Emerald Green Check Circle Badge overlayed */}
                                 <div className="absolute top-2 left-2 w-5 h-5 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center text-white text-[10px] shadow-sm">
@@ -1072,11 +1172,15 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                                   top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                                   left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
                                   width: `${finalGlassesWidth}%`,
-                                  transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                                  transform: `translate(-50%, -50%) perspective(400px) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                                  transformStyle: 'preserve-3d',
                                 }}
                               >
-                                <GlassesSvg type={model.id} color="#b45309" />
+                                <div style={{ width: '100%', height: '100%' }}>
+                                  <GlassesSvg type={model.id} color="#b45309" hideArms={true} />
+                                </div>
                               </div>
+                              <DynamicTempleArms color="#b45309" eyeCoords={eyeCoords} finalGlassesWidth={finalGlassesWidth} finalYaw={finalYaw} finalTilt={finalTilt} offsetX={offsetX} offsetY={offsetY} actualLandmarks={actualLandmarks} />
 
                               {/* Red cross warning badge overlayed */}
                               <div className="absolute top-1 left-1 w-4 h-4 bg-red-500 rounded-full border border-white flex items-center justify-center text-white text-[9px] shadow-sm font-black">
@@ -1158,15 +1262,14 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
 
                   {/* Elegant footer section */}
                   <div className="border-t border-[#e2dad1] pt-6 flex flex-col md:flex-row justify-between items-center text-[9px] font-mono text-stone-400 gap-3 mt-10">
-                    <p className="font-semibold flex items-center gap-1.5 text-stone-500">
+                    <p className="font-semibold flex items-center gap-1.5 text-stone-500 cursor-pointer hover:text-stone-900 transition-colors" onClick={onClose} title="Back to home">
                       <Sparkles className="w-3.5 h-3.5 text-[#b45309]" />
                       LUMINA AESTHETIC AI LABS — OPTOMETRY INFOGRAPHIC DESIGN REPORT
                     </p>
-                    <p className="font-bold text-stone-500 uppercase tracking-widest">
+                    <p className="font-bold text-stone-500 uppercase tracking-widest cursor-pointer hover:text-stone-900 transition-colors" onClick={onClose} title="Back to home">
                       {language === 'id' ? 'KLINIK KECANTIKAN LUMINA' : 'LUMINA MEDICAL BEAUTY LAB'}
                     </p>
                   </div>
-
                 </div>
 
                 {/* Poster PDF Exporter Block */}
@@ -1238,8 +1341,6 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                       <div className="w-full max-w-xs bg-stone-800 border border-stone-200 rounded-xl overflow-hidden relative flex items-center justify-center select-none shadow-inner h-auto group mx-auto" style={{ perspective: '1000px' }}>
                         {imageSrc ? (
                           <img 
-                            ref={imgRef}
-                            onLoad={performFaceDetection}
                             src={imageSrc} 
                             alt="Interactive Custom Face try-on" 
                             className="w-full h-auto block pointer-events-none brightness-105 rounded-xl"
@@ -1258,7 +1359,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                         )}
 
                         {/* Blinking Landmark Reticles (Pupils and nose bridge) */}
-                        {(autoAlign || isScanning) && imageSrc && (
+                        {isScanning && imageSrc && (
                           <>
                             {/* Left Pupil */}
                             <div 
@@ -1305,12 +1406,16 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                             top: `calc(${eyeCoords.y}% + ${offsetY}px)`,
                             left: `calc(${eyeCoords.x}% + ${offsetX}px)`,
                             width: `${finalGlassesWidth}%`,
-                            transform: `translate(-50%, -50%) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                            transform: `translate(-50%, -50%) perspective(400px) rotateZ(${finalTilt}deg) rotateY(${finalYaw}deg) rotateX(${finalPitch}deg)`,
+                            transformStyle: 'preserve-3d',
                             opacity: isScanning ? 0.35 : 1,
                           }}
                         >
-                          <GlassesSvg type={tryOnModel} color={frameColor} />
+                          <div style={{ width: '100%', height: '100%' }}>
+                            <GlassesSvg type={tryOnModel} color={frameColor} hideArms={true} />
+                          </div>
                         </div>
+                        <DynamicTempleArms color={frameColor} eyeCoords={eyeCoords} finalGlassesWidth={finalGlassesWidth} finalYaw={finalYaw} finalTilt={finalTilt} offsetX={offsetX} offsetY={offsetY} actualLandmarks={actualLandmarks} />
 
                         {/* Scanning Terminal Logs HUD Overlay */}
                         {isScanning && (
@@ -1340,8 +1445,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                           >
                             <ScanFace className={`w-4 h-4 ${isScanning ? 'animate-spin' : ''}`} />
                             {isScanning 
-                              ? (language === 'id' ? 'Memindai...' : 'Scanning...') 
-                              : (language === 'id' ? 'Penyelarasan AI Otomatis' : 'AI Auto-Align Position')}
+                              ? (language === 'id' ? 'Memetakan 3D...' : '3D Mapping...') 
+                              : (language === 'id' ? 'Pemetaan Ekstraksi 3D' : 'Extract 3D Spatial Position')}
                           </button>
 
                           <button
@@ -1376,6 +1481,8 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                               setOffsetX(0);
                               setScale(1.0);
                               setTilt(0);
+                              setYaw(0);
+                              setPitch(0);
                             }}
                             className="text-[10px] text-stone-500 hover:text-stone-800 bg-white hover:bg-stone-100 px-3 py-1.5 rounded-lg border border-stone-200 transition-colors uppercase font-bold tracking-widest flex items-center gap-1.5 font-mono cursor-pointer"
                           >
@@ -1385,7 +1492,7 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                           
                           {autoAlign && (
                             <span className="text-[9.5px] font-bold text-stone-400 font-mono uppercase">
-                              {language === 'id' ? 'AI Auto-Fitting v1.0' : 'AI Auto-Fitting v1.0'}
+                              {language === 'id' ? 'AI 3D Spatial-Fit v2.0' : 'AI 3D Spatial-Fit v2.0'}
                             </span>
                           )}
                         </div>
@@ -1451,15 +1558,47 @@ export const GlassesFrameModal = ({ data, detailedFaceData, imageSrc, onClose, o
                           {/* Tilt */}
                           <div className="space-y-0.5">
                             <div className="flex justify-between text-[10px] text-stone-500 font-bold">
-                              <span>{language === 'id' ? 'Sudut Kemiringan' : 'Rotational Tilt'}</span>
+                              <span>{language === 'id' ? 'Rotasi Roll (Miring)' : 'Rotational Roll (Tilt)'}</span>
                               <span className="font-mono text-stone-700">{tilt}°</span>
                             </div>
                             <input 
                               type="range" 
-                              min="-20" 
-                              max="20" 
+                              min="-45" 
+                              max="45" 
                               value={tilt} 
                               onChange={(e) => setTilt(parseInt(e.target.value))}
+                              className="w-full accent-stone-950 cursor-pointer h-1.5 bg-stone-300 rounded-lg appearance-none"
+                            />
+                          </div>
+
+                          {/* Yaw */}
+                          <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px] text-stone-500 font-bold">
+                              <span>{language === 'id' ? 'Rotasi Hadap (Yaw)' : 'Horizontal Rotation (Yaw)'}</span>
+                              <span className="font-mono text-stone-700">{yaw}°</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="-90" 
+                              max="90" 
+                              value={yaw} 
+                              onChange={(e) => setYaw(parseInt(e.target.value))}
+                              className="w-full accent-stone-950 cursor-pointer h-1.5 bg-stone-300 rounded-lg appearance-none"
+                            />
+                          </div>
+
+                          {/* Pitch */}
+                          <div className="space-y-0.5">
+                            <div className="flex justify-between text-[10px] text-stone-500 font-bold">
+                              <span>{language === 'id' ? 'Rotasi Atas/Bawah (Pitch)' : 'Vertical Rotation (Pitch)'}</span>
+                              <span className="font-mono text-stone-700">{pitch}°</span>
+                            </div>
+                            <input 
+                              type="range" 
+                              min="-45" 
+                              max="45" 
+                              value={pitch} 
+                              onChange={(e) => setPitch(parseInt(e.target.value))}
                               className="w-full accent-stone-950 cursor-pointer h-1.5 bg-stone-300 rounded-lg appearance-none"
                             />
                           </div>

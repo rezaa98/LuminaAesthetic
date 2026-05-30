@@ -107,23 +107,18 @@ export const FaceFeatureModal = ({ imageSrc, onClose, cachedData, onDataFecthed,
       setLoading(true);
       setError(null);
       try {
-        let base64 = imageSrc;
-        if (imageSrc.startsWith('blob:')) {
-          const fetchedBlob = await fetch(imageSrc).then(r => r.blob());
-          base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(fetchedBlob);
-          });
-        }
+        let fileBlob = await fetch(imageSrc).then(r => r.blob());
+
+        const preferredModel = localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash';
+        
+        const formData = new FormData();
+        formData.append('image', fileBlob, 'image.jpg');
+        formData.append('language', language);
+        formData.append('preferredModel', preferredModel);
 
         const res = await fetch('/api/analyze-features', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ imageBase64: base64, language: language })
+          body: formData
         });
         
         if (!res.ok) {

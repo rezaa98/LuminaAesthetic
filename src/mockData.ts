@@ -1,14 +1,39 @@
 import { AnalysisResult } from './types';
 
+export const checkGlassesWithAI = async (imageFile: File | null): Promise<boolean> => {
+  if (!imageFile) return false;
+
+  const preferredModel = localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash';
+
+  const formData = new FormData();
+  formData.append("image", imageFile);
+  formData.append("preferredModel", preferredModel);
+
+  const response = await fetch("/api/check-glasses", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    return false; // Fail open
+  }
+
+  const data = await response.json();
+  return data.hasGlasses === true;
+};
+
 // Process image using real Gemini API
 export const processImageWithAI = async (imageFile: File | null, language: string = 'id'): Promise<AnalysisResult> => {
   if (!imageFile) {
     throw new Error("No image file provided");
   }
 
+  const preferredModel = localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash';
+
   const formData = new FormData();
   formData.append("image", imageFile);
   formData.append("language", language);
+  formData.append("preferredModel", preferredModel);
 
   const response = await fetch("/api/analyze", {
     method: "POST",

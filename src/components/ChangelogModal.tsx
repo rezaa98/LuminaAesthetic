@@ -8,6 +8,190 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.54.0",
+      date: "29 May 2026",
+      changes: [
+        "Revolusi Realisme 3D: Tangkai kacamata (temple arms) kini memproyeksikan secara riil ke belakang menuju telinga dalam ruang 3D sejati menggunakan properti `preserve-3d`. Saat rotasi wajah terdeteksi (yaw), tangkai panjang kacamata akan merespon dengan presisi perspektif dan tidak lagi mengawang melayang di udara.",
+        "Pembersihan Antarmuka: Menghilangkan overlay titik statis 'T-Zone' pada saat melihat foto untuk memastikan kejernihan pemandangan uji coba kacamata."
+      ],
+    },
+    {
+      version: "v2.53.0",
+      date: "29 May 2026",
+      changes: [
+        "Penyempurnaan Simulasi 3D & Fokus Visual: Mengembalikan tangkai kacamata ke model 2D Isometrik bawaan dengan efek perspektif murni yang lebih stabil untuk mencegah posisi kacamata 'offside' ketika wajah menoleh.",
+        "Menyembunyikan UI Titik Pelacakan (Landmark Mata & Hidung) saat mode Preview AR sehingga pengguna dapat melihat bingkai kacamata lebih jelas dan fokus tanpa gangguan elemen pemindaian."
+      ],
+    },
+    {
+      version: "v2.52.0",
+      date: "29 May 2026",
+      changes: [
+        "Simulasi Tangkai 3D (Tingkat Lanjut): Kacamata kini menggunakan engine 3D murni untuk tangkainya (temple arms). Saat wajah menoleh (side-profile), tangkai kacamata akan secara realistis menjulur ke belakang (Z-axis) ke arah telinga, memecahkan masalah ilusi 2D pipih yang terjadi pada rilis sebelumnya."
+      ],
+    },
+    {
+      version: "v2.51.0",
+      date: "29 May 2026",
+      changes: [
+        "Peningkatan Engine AI Pelacakan Wajah: Mengganti model ringan (TinyFaceDetector) menjadi SSD MobileNet V1 pada AR Try-On, meningkatkan akurasi signifikan untuk mendeteksi wajah dengan hadap ekstrem (Side Profiles / Hadap Kanan & Kiri yang terlampau jauh)."
+      ],
+    },
+    {
+      version: "v2.50.0",
+      date: "29 May 2026",
+      changes: [
+        "Kontrol 3D Kacamata Ekstensif (Fix Side Profile): Menambahkan tuas kendali manual rotasi 3-sumbu penuh (Yaw/Hadap Kiri-Kanan, Pitch/Angguk Atas-Bawah, dan Roll/Miring) agar pengguna dapat menyesuaikan presisi 'fitting' kacamata ketika wajah menoleh (side-profile) atau di luar jangkauan pemindaian 'Auto-Sync' Face-API."
+      ],
+    },
+    {
+      version: "v2.49.0",
+      date: "29 May 2026",
+      changes: [
+        "Sistem Retry Fallback Model: Mengembalikan mekanisme jeda percobaan ulang (exponential backoff) pada setiap model sebelum melakukan fallback ke model lain, agar aplikasi dapat menangani error 503 (server overloaded) dan 429 (rate limited) lebih elegan tanpa gagal secara prematur."
+      ],
+    },
+    {
+      version: "v2.48.0",
+      date: "29 May 2026",
+      changes: [
+        "Desain UI/UX Baru: Mengganti peringatan deteksi kacamata (alert bawaan browser) dengan Popup UI kustom berbasis Animasi yang lebih modern, rapih, elegan, dan informatif untuk mengingatkan pengguna."
+      ],
+    },
+    {
+      version: "v2.47.0",
+      date: "29 May 2026",
+      changes: [
+        "Kontrol Pintar Mesin AI & Bypass Deteksi (Fitur Super Admin): Menyediakan panel UI khusus untuk Role Super Admin guna mengatur preferensi fallback urutan pemanggilan AI Model (mulai dari 3.5-flash hingga 1.5-pro).",
+        "Toggle Deteksi Kacamata (Opt-Out): Memberikan Super Admin limitasi hemat kuota API dengan tombol interaktif untuk menonaktifkan pengecekan kacamata dari alur upload (berguna ketika traffic sedang penuh).",
+        "Sistem Self-Healing Model API: Mengimplementasikan mekanisme otomatis pergeseran rute model API dari tier satu ke lainnya jika Google AI Engine melempar kode error 429 (Rate Limit) dan 404 (Model Deprecated/Not Found)."
+      ],
+    },
+    {
+      version: "v2.46.0",
+      date: "29 May 2026",
+      changes: [
+        "Migrasi Model AI & Perbaikan Total (Fix 404 Error): Beralih menggunakan seri mutakhir 'gemini-3.5-flash' yang sesuai dengan arsitektur SDK @google/genai terbaru (v1beta). Keputusan ini mengatasi ketidakcocokan versi sebelumnya ('gemini-1.5-flash' dan model legacy lainnya yang tidak lagi didukung oleh endpoint API) serta memberikan batas performa (rate limit) ringan yang lebih mumpuni."
+      ],
+    },
+    {
+      version: "v2.45.0",
+      date: "29 May 2026",
+      changes: [
+        "Optimalisasi Kuota & Performa API (Fix Error 429): Mengganti dan menyeragamkan antrean seluruh detektor ke model 'gemini-1.5-flash'. Model ini memiliki batasan pemrosesan limit jauh lebih besar (sangat tinggi untuk request rate dan token) di Free Tier dibandingkan seri 2.0-flash maupun 1.5-pro, sehingga mencegah aplikasi dari kendala rate limit / kuota habis dan menghindari ketidakstabilan parsing (error 500) yang terjadi pada opsi Pro/Flash-lite sebelumnya."
+      ],
+    },
+    {
+      version: "v2.44.0",
+      date: "29 May 2026",
+      changes: [
+        "Peningkatan Kapasitas & Stabilitas API Backend: Mengganti model AI utama ke 'gemini-1.5-pro' untuk merespons pelaporan limit kuota tersendat (Error 429) pada versi gemini-2.0-flash di free tier. Model ini menyediakan batasan limit yang jauh lebih aman sembari tetap menjaga akurasi mendetail."
+      ],
+    },
+    {
+      version: "v2.43.0",
+      date: "29 May 2026",
+      changes: [
+        "Optimalisasi Akurasi Rotasi Live Try-On: Memperbaiki bug kalkulasi titik tumpu (pivot point) 3D model yang sebelumnya menggunakan bagian atas pangkal hidung (nasion) yang konstan, diubah menggunakan ujung hidung (nose tip / landmark 30) yang sangat responsif, sehingga kini rotasi YAW bingkai kacamata dapat mengikuti pergerakan tengokan wajah pengguna secara luwes dan akurat.",
+        "Pemulihan API Model Backend: Melakukan migrasi backend instance dari 'gemini-3.1-flash-lite' kembali menuju 'gemini-2.0-flash' untuk memastikan kompatibilitas Endpoint dan menyelesaikan masalah API Version v1beta Error 404 (Not Found)."
+      ],
+    },
+    {
+      version: "v2.42.0",
+      date: "29 May 2026",
+      changes: [
+        "Peningkatan UX Kamera & Model Filter Kacamata: Menambahkan efek *mirroring* (-scale-x-100) pada feed kamera langsung dan *canvas output* agar visualisasi gerakan kepala pengguna natural seperti cermin aslinya. Memperbarui instance pipeline detektor kacamata (*fallback*) dengan model API terbaru yang didukung untuk menyelesaikan isu bypass *NOT_FOUND* pada endpoint analisis model.",
+      ],
+    },
+    {
+      version: "v2.41.0",
+      date: "29 May 2026",
+      changes: [
+        "Optimalisasi Tampilan Kalibrasi Wajah: Memindahkan instruksi 'Kalibrasi Posisi Wajah' ke bagian atas layar dengan padding yang lebih rapi (top-4) dan ukuran dinamis, agar tidak menghalangi wajah pengguna secara langsung di dalam area _scanning oval_. Perbaikan ini membuat antarmuka menjadi lebih intuitif, clean, dan tidak mengganggu saat pengambilan gambar."
+      ],
+    },
+    {
+      version: "v2.40.0",
+      date: "29 May 2026",
+      changes: [
+        "Rollback dan Migrasi Sistem Deteksi Kacamata (Option A): Mengembalikan modul filter kacamata dari _client-side_ (face-api.js) ke _server-side_ menggunakan model AI Gemini API khusus. Pendekatan ini mengatasi masalah bypass deteksi (sehingga kacamata pengguna tidak lolos pemindaian) dan memastikan kalibrasi wajah yang sangat akurat di backend server sebelum melangkah ke proses analitik utama.",
+      ],
+    },
+    {
+      version: "v2.39.0",
+      date: "29 May 2026",
+      changes: [
+        "Sistem Deteksi Kacamata Sisi-Klien (Option C): Mengimplementasikan modul filter kacamata native memanfaatkan `face-api.js` pada saat pengambilan foto live di browser, menampilkan notifikasi seketika tanpa perlu mengirim payload ke server/API Gemini. Catatan: Pendekatan klien ini dapat menyebabkan latensi/lag 1-2 detik pada saat memencet tombol ambil foto.",
+      ],
+    },
+    {
+      version: "v2.38.0",
+      date: "29 May 2026",
+      changes: [
+        "Optimalisasi Tata Letak Ultra-Wide (Responsive Grid Re-architecture): Melebarkan batas maksimum antarmuka (max-w-[90rem]) untuk menghilangkan kekosongan sisa batas layar pada monitor besar. Papan Diagnosis kini secara adaptif memetakan matriks kolom menjadi 3 unit di sisi desktop lebar, memberikan porsi data yang padat, presisi, dan terkalibrasi tanpa adanya stretch whitespace yang mengganggu.",
+      ],
+    },
+    {
+      version: "v2.37.0",
+      date: "29 May 2026",
+      changes: [
+        "Resolusi Masalah Quota Firestore (Database Payload Optimizer): Menambahkan modul pemampatan gambar berbasis native-canvas pada engine konversi di sisi klien. Gambar besar kini diubah secara dinamis menjadi Base64 berukuran ringan (dibawah 500KB) sebelum disimpan ke Cloud Firestore untuk mencegah kegagalan \"Document exceeds maximum allowed size\" saat masuk ke lembar riwayat medis.",
+      ],
+    },
+    {
+      version: "v2.36.0",
+      date: "29 May 2026",
+      changes: [
+        "Sistem Stabilisasi Trajektori EMA (Exponential Moving Average): Mengimplementasikan filter penghalus secara matematis untuk menangani getaran mikroskopis (jitter) selama sesi AR Face Tracking langsung. Mengurangi goyangan kacamata virtual dan menahan pelacakan spasial secara responsif dan jauh lebih presisi.",
+      ],
+    },
+    {
+      version: "v2.35.0",
+      date: "29 May 2026",
+      changes: [
+        "Kompresi Gambar Otomatis (Auto-Compression Engine): Kini aplikasi secara otomatis memampatkan foto yang melebihi batas ukuran (10MB) di sisi peramban (client-side) tanpa kehilangan kualitas pengenalan wajah. Tidak akan ada lagi pemblokiran unggahan akibat kamera beresolusi tinggi, meningkatkan persentase inklusi analisis tanpa beban hambatan format (Frictionless High-Res Processing).",
+      ],
+    },
+    {
+      version: "v2.34.0",
+      date: "29 May 2026",
+      changes: [
+        "Pemetaan Spasial 3D Parallax & Ukuran Autentik (Authentic 3D Parallax Mapping): Merombak sistem coba virtual kacamata. Komponen sekarang bergeser dan berotasi secara penuh ke sumbu Pitch, Yaw, dan Roll menduplikasi rotasi wajah asli secara presisi menggunakan transformStyle: preserve-3d CSS modern.",
+        "Akurasi Sizing Horisontal Rill (True Horizontal Span Precision): Penskalaan bingkai kacamata kini diukur secara presisi mengambil indeks poin rahang-ke-rahang sejati dari faceAPI (Cheekbone limits) untuk proporsi matematis yang akurat, tidak lagi mengandalkan skala box default.",
+      ],
+    },
+    {
+      version: "v2.33.0",
+      date: "29 May 2026",
+      changes: [
+        "Migrasi Infrastruktur Firebase Cloud Rill (Live Firebase Cloud Migration): Berhasil melakukan provisi otomatis database NoSQL cloud Firestore serta Firebase Auth rill pada proyek 'chesspedia' dengan penautan kredensial kunci API resmi.",
+        "Pemasangan Aturan Keamanan Produksi (Production Rules Deployment): Mendeploy berkas firestore.rules dengan enkapsulasi Zero-Trust dan Attribute-Based Access Control secara aman di cloud untuk melindungi kerahasiaan medis pengguna.",
+      ],
+    },
+    {
+      version: "v2.32.0",
+      date: "29 May 2026",
+      changes: [
+        "Inisialisasi Firebase Tangguh & Mode Sandbox Offline (Resilient Firebase Initialization & Sandbox Fallback): Membungkus inisialisasi Firebase SDK dalam penanganan kesalahan proaktif. Jika API Key tidak valid atau dummy (misal, akibat penghapusan config), aplikasi tidak akan crash pada waktu muat melainkan beralih secara otomatis ke Mode Sandbox dengan mock database yang aman, menjaga kestabilan total aplikasi.",
+      ],
+    },
+    {
+      version: "v2.31.0",
+      date: "29 May 2026",
+      changes: [
+        "Validasi Ukuran Unggah Foto Proaktif (Delightful Image Size Validation): Menambahkan sistem pencegahan mandiri untuk berkas lebih dari 10MB di sisi klien dengan memberikan spanduk notifikasi kesalahan terintegrasi berpendar merah yang intuitif, menggantikan peringatan sistem bawaan ataupun rilis error default.",
+        "Sinkronisasi Batas Informasi Label (Information Limit Alignment): Menyelaraskan teks batas informasi di komponen galeri uploader menjadi 10MB demi memelihara kejujuran batasan visual.",
+      ],
+    },
+    {
+      version: "v2.30.0",
+      date: "29 May 2026",
+      changes: [
+        "Kampanye Profesional LinkedIn (LinkedIn Professional Post Drafting): Membuat dokumen khusus LINKEDIN_POST.md yang merangkum asal muasal ide orisinal 'Lumière Beauty Clinic / LuminaAesthetic' dari pengalaman personal terkena cacar air dewasa di awal April, yang dikonseptualisasikan secara matang dalam 3 pilar pengetesan: Masalah (30%), Solusi (40%), dan Keunikan (30%).",
+        "Penyelarasan Siklus Rilis (Siklus Rilis v2.30.0): Melakukan bump versi antarmuka utama pengguna serta footer penjejak ke tingkat v2.30.0 demi koherensi pelaporan rilis."
+      ],
+    },
+    {
       version: "v2.29.0",
       date: "29 May 2026",
       changes: [

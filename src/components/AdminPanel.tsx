@@ -15,6 +15,7 @@ import {
   Info, 
   Download,
   Loader,
+  Settings,
   Trash2
 } from 'lucide-react';
 import { User, HistoryItem, AuditLog, UserRole } from '../types';
@@ -43,7 +44,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 }) => {
   const isEn = language === 'en';
   const isSuper = currentUser.role === 'super_admin';
-  const [activeTab, setActiveTab] = useState<'directory' | 'users' | 'audits'>('directory');
+  const [activeTab, setActiveTab] = useState<'directory' | 'users' | 'audits' | 'settings'>('directory');
   
   // Local reactive states loaded from Firebase
   const [userList, setUserList] = useState<User[]>([]);
@@ -55,6 +56,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   // Pagination for Diagnosis Ledgers
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [pageSize, setPageSize] = useState<number>(5);
+
+  // Settings states
+  const [enableGlassesDetection, setEnableGlassesDetection] = useState<boolean>(() => {
+    return localStorage.getItem('lumina-settings-glasses-detection') !== 'false';
+  });
+
+  const [preferredModel, setPreferredModel] = useState<string>(() => {
+    return (localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash');
+  });
+
+  const handleToggleGlasses = () => {
+    const newVal = !enableGlassesDetection;
+    setEnableGlassesDetection(newVal);
+    localStorage.setItem('lumina-settings-glasses-detection', String(newVal));
+    onAddAuditLog('Settings Changed', `Super Admin mengubah status deteksi kacamata menjadi ${newVal ? 'Aktif' : 'Nonaktif'}`);
+  };
+
+  const handleModelChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const val = e.target.value;
+    setPreferredModel(val);
+    localStorage.setItem('lumina-settings-model', val);
+    onAddAuditLog('Settings Changed', `Super Admin mengubah model AI utama menjadi ${val}`);
+  };
 
   // PDF report states
   const [downloadingItemId, setDownloadingItemId] = useState<string | null>(null);
@@ -357,6 +381,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <ClipboardList className="w-4 h-4" />
             {isEn ? 'Security Audit Logs' : 'Log Audit Pengamanan'}
           </button>
+
+          {isSuper && (
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`flex items-center gap-1.5 whitespace-nowrap font-bold tracking-tight pb-2 sm:pb-3 pt-3 border-b-2 transition-all ${activeTab === 'settings' ? 'text-pink-650 border-pink-500 text-pink-500' : 'text-slate-400 border-transparent hover:text-slate-600'}`}
+            >
+              <Settings className="w-4 h-4" />
+              {isEn ? 'System Settings' : 'Pengaturan Sistem'}
+            </button>
+          )}
         </div>
 
         <div className="hidden sm:flex shrink-0">
@@ -697,6 +731,71 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <p className="text-[9px] text-[#4b5563] font-semibold leading-relaxed">
                 Log ini merekam setiap transaksi sandbox yang berjalan secara real-time. Meliputi verifikasi AI, input resep medis baru, ekspor PDF A4, dan transisi role-based di bawah kepatuhan sertifikat privasi Lumina.
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: SYSTEM SETTINGS (SUPER ADMIN ONLY) */}
+        {activeTab === 'settings' && isSuper && (
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-2">
+              <div className="flex items-center gap-2">
+                <Settings className="w-5 h-5 text-purple-500" />
+                <h3 className="font-black text-slate-800 text-sm tracking-tight">{isEn ? 'Global System Preferences' : 'Preferensi Sistem Global'}</h3>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-5 sm:p-6 space-y-6">
+              {/* Feature Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">{isEn ? 'Glasses Detection Protocol' : 'Protokol Deteksi Kacamata'}</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                    {isEn 
+                      ? 'Controls whether the AI scans faces for eyewear before proceeding with clinical detection. Disabling this skips the glasses check and saves API quota.'
+                      : 'Mengontrol apakah AI akan memindai penggunaan kacamata pada wajah sebelum melanjutkan deteksi klinis. Menonaktifkan fitur ini akan melewatkan pengecekan kacamata dan menghemat kuota API.'}
+                  </p>
+                </div>
+                
+                <button
+                  onClick={handleToggleGlasses}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-0 ${enableGlassesDetection ? 'bg-pink-500' : 'bg-slate-200'}`}
+                  role="switch"
+                  aria-checked={enableGlassesDetection}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${enableGlassesDetection ? 'translate-x-5' : 'translate-x-0'}`}
+                  />
+                </button>
+              </div>
+
+              {/* Model Selection */}
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                <div className="flex-1">
+                  <h4 className="font-bold text-slate-800 text-sm">{isEn ? 'Primary AI Engine Model' : 'Model Mesin AI Utama'}</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                    {isEn
+                      ? 'Select the preferred Gemini backend model. If limits are reached (429 Error) or version deprecated (404 Error), the system will fallback, but you can override the baseline preference here.'
+                      : 'Pilih model backend Gemini yang diprioritaskan. Jika mencapai limit kuota (Error 429) atau model mati (Error 404), sistem akan melakukan fallback otomatis antar seluruh model, namun Anda bisa mengubah prioritas awalnya di sini.'}
+                  </p>
+                </div>
+                
+                <div className="w-full sm:w-64 shrink-0">
+                  <select
+                    value={preferredModel}
+                    onChange={handleModelChange}
+                    className="w-full bg-slate-50 border border-slate-200 text-slate-700 text-sm font-bold rounded-lg focus:ring-pink-500 focus:border-pink-500 block p-2.5 outline-none cursor-pointer"
+                  >
+                    <option value="gemini-3.5-flash">Gemini 3.5 Flash (v1beta)</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                    <option value="gemini-2.0-flash-lite">Gemini 2.0 Flash Lite</option>
+                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
         )}

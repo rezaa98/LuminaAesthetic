@@ -6,12 +6,14 @@ import { UserRole } from '../types';
 import { FaceShapeQuiz } from './FaceShapeQuiz';
 
 interface LandingPageProps {
+  currentUser?: any;
   onStartAsGuest: () => void;
   onOpenLogIn: (presetRole?: UserRole) => void;
+  onOpenDashboard?: () => void;
   language: 'id' | 'en';
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpenLogIn, language }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ currentUser, onStartAsGuest, onOpenLogIn, onOpenDashboard, language }) => {
   const isEn = language === 'en';
 
   const stats = [
@@ -100,14 +102,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onStartAsGuest, onOpen
           transition={{ delay: 0.3 }}
           className="flex flex-col sm:flex-row gap-4 justify-center w-full max-w-md shrink-0"
         >
-          <button
-            onClick={() => onOpenLogIn()}
-            className="flex-1 px-8 py-4 bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white rounded-2xl font-black text-sm tracking-wide shadow-lg shadow-pink-500/15 hover:shadow-indigo-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-[0.98]"
-            id="btn-landing-login"
-          >
-            {isEn ? 'Sign In / Register' : 'Masuk / Daftar Akun'}
-            <ArrowRight className="w-4 h-4" />
-          </button>
+          {currentUser ? (
+            <button
+              onClick={() => onOpenDashboard && onOpenDashboard()}
+              className="flex-1 px-8 py-4 bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white rounded-2xl font-black text-sm tracking-wide shadow-lg shadow-pink-500/15 hover:shadow-indigo-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-[0.98]"
+              id="btn-landing-dashboard"
+            >
+              {isEn ? 'Go to Dashboard' : 'Buka Dashboard'}
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          ) : (
+            <button
+              onClick={() => onOpenLogIn()}
+              className="flex-1 px-8 py-4 bg-gradient-to-r from-pink-500 to-indigo-600 hover:from-pink-600 hover:to-indigo-700 text-white rounded-2xl font-black text-sm tracking-wide shadow-lg shadow-pink-500/15 hover:shadow-indigo-500/25 transition-all duration-300 flex items-center justify-center gap-2 transform active:scale-[0.98]"
+              id="btn-landing-login"
+            >
+              {isEn ? 'Sign In / Register' : 'Masuk / Daftar Akun'}
+              <ArrowRight className="w-4 h-4" />
+            </button>
+          )}
           
           <button
             onClick={onStartAsGuest}

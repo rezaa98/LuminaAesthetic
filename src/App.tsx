@@ -11,7 +11,38 @@ const fileToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        
+        // Scale down to max 800px to ensure base64 string is well under Firestore 1MB limit
+        const maxDim = 800;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.6)); // 0.6 quality = smaller size
+        } else {
+          resolve(reader.result as string);
+        }
+      };
+      img.onerror = () => resolve(reader.result as string);
+      img.src = event.target?.result as string;
+    };
     reader.onerror = error => reject(error);
   });
 };
@@ -20,7 +51,8 @@ import { AnalysisLoading } from './components/AnalysisLoading';
 import { DashboardView } from './components/DashboardView';
 import { HistoryView } from './components/HistoryView';
 import { ChangelogModal } from './components/ChangelogModal';
-import { processImageWithAI } from './mockData';
+import { GlassesDetectedModal } from './components/GlassesDetectedModal';
+import { processImageWithAI, checkGlassesWithAI } from './mockData';
 import { LandingPage } from './components/LandingPage';
 import { AuthView } from './components/AuthView';
 import { AdminPanel } from './components/AdminPanel';
@@ -35,6 +67,7 @@ export default function App() {
   const [uploadedImageURL, setUploadedImageURL] = useState<string | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
+  const [showGlassesAlert, setShowGlassesAlert] = useState<boolean>(false);
   const { lang, language, setLanguage } = useLanguage();
 
   // Load User Session & History On Mount
@@ -83,8 +116,22 @@ export default function App() {
                setAppState('upload');
             }
           }
-        } catch (e) {
+        } catch (e: any) {
           console.error('Error fetching user profile:', e);
+          // Fallback if Firestore fails (so they don't get stuck)
+          const fallbackRole: UserRole = firebaseUser.email === 'reza.yusuf98@gmail.com' ? 'super_admin' : 'user';
+          setCurrentUser({
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'Error Loading User',
+            username: firebaseUser.email?.split('@')[0] || 'user',
+            role: fallbackRole,
+            createdAt: Date.now().toString()
+          });
+          if ((fallbackRole as string) === 'admin' || fallbackRole === 'super_admin') {
+            setAppState('admin');
+          } else {
+            setAppState('upload');
+          }
         }
       } else {
         setCurrentUser(null);
@@ -184,6 +231,7 @@ export default function App() {
   const [arStatus, setArStatus] = useState<string>('MENUNGGU MODEL...');
   const [faceData, setFaceData] = useState<{ x: number, y: number, width: number, angle: number } | null>(null);
   const reqRef = useRef<number>();
+  const emaRef = useRef<{ x: number, y: number, width: number, angle: number } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -225,6 +273,7 @@ export default function App() {
         setArStream(null);
       }
       setFaceData(null);
+      emaRef.current = null;
       if (reqRef.current) cancelAnimationFrame(reqRef.current);
     }
   }, [arModeActive]);
@@ -308,12 +357,34 @@ export default function App() {
         const mappedEyeDist = (distance / vidW) * renderW;
         const glassesWidth = mappedEyeDist * 2.5;
 
-        setFaceData({
-          x: xMapped,
-          y: yMapped,
-          width: glassesWidth,
-          angle: angle
-        });
+        const targetX = xMapped;
+        const targetY = yMapped;
+        const targetWidth = glassesWidth;
+        const targetAngle = angle;
+        
+        let finalX = targetX;
+        let finalY = targetY;
+        let finalWidth = targetWidth;
+        let finalAngle = targetAngle;
+        
+        if (emaRef.current) {
+          // Exponential Moving Average smoothing to reduce jitter
+          const alpha = 0.35; // lower = smoother but laggy, higher = faster but jittery
+          finalX = emaRef.current.x + alpha * (targetX - emaRef.current.x);
+          finalY = emaRef.current.y + alpha * (targetY - emaRef.current.y);
+          finalWidth = emaRef.current.width + alpha * (targetWidth - emaRef.current.width);
+          finalAngle = emaRef.current.angle + alpha * (targetAngle - emaRef.current.angle);
+        }
+        
+        const newData = {
+          x: finalX,
+          y: finalY,
+          width: finalWidth,
+          angle: finalAngle
+        };
+        
+        emaRef.current = newData;
+        setFaceData(newData);
       } else {
         setArStatus('MENCARI WAJAH...');
         // Smoothly fade out or keep old position? Better to reset or keep for a bit.
@@ -337,6 +408,22 @@ export default function App() {
     setArModeActive(false);
     if (file) {
       setUploadedImageURL(URL.createObjectURL(file));
+      
+      const enableGlassesDetection = localStorage.getItem('lumina-settings-glasses-detection') !== 'false';
+
+      if (enableGlassesDetection) {
+        try {
+          const hasGlasses = await checkGlassesWithAI(file);
+          if (hasGlasses) {
+            setShowGlassesAlert(true);
+            setAppState('upload');
+            setUploadedImageURL(null);
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to check glasses:", e);
+        }
+      }
     }
     
     try {
@@ -433,12 +520,22 @@ export default function App() {
   const consultantNotes = activeScanItem?.consultantNotes;
   const consultantName = activeScanItem?.consultantName;
 
+  useEffect(() => {
+    if (appState === 'login' && currentUser) {
+      if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+        setAppState('admin');
+      } else {
+        setAppState('upload');
+      }
+    }
+  }, [appState, currentUser]);
+
   if (appState === 'landing') {
     return (
       <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
         <div className="min-h-[100dvh] md:h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl relative bg-white">
           <header className="h-16 bg-white border-b border-slate-200/60 px-4 md:px-8 flex items-center justify-between shrink-0 gap-2">
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => setAppState('landing')}>
               <div className="w-7 h-7 md:w-8 md:h-8 bg-pink-500 rounded-lg flex items-center justify-center shrink-0">
                 <Sparkles className="text-white w-3.5 h-3.5 md:w-4 md:h-4" />
               </div>
@@ -463,21 +560,38 @@ export default function App() {
                 </button>
               </div>
               
-              <button
-                onClick={() => {
-                  setActiveRolePreset(undefined);
-                  setAppState('login');
-                }}
-                className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg sm:rounded-xl transition-colors shadow-md flex items-center gap-1.5 whitespace-nowrap"
-                id="btn-landing-login-topbar"
-              >
-                <LogIn className="w-3.5 h-3.5 hidden sm:inline-block" />
-                <span>{language === 'id' ? 'Masuk' : 'Sign In'}</span>
-              </button>
+              {currentUser ? (
+                <button
+                  onClick={() => {
+                    if (currentUser.role === 'admin' || currentUser.role === 'super_admin') {
+                      setAppState('admin');
+                    } else {
+                      setAppState('upload');
+                    }
+                  }}
+                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-pink-600 hover:bg-pink-700 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg sm:rounded-xl transition-colors shadow-md flex items-center gap-1.5 whitespace-nowrap"
+                  id="btn-landing-dashboard-topbar"
+                >
+                  <span>{language === 'id' ? 'Dashboard' : 'Dashboard'}</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    setActiveRolePreset(undefined);
+                    setAppState('login');
+                  }}
+                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-slate-900 hover:bg-slate-800 text-white text-[10px] sm:text-xs font-black uppercase tracking-wider rounded-lg sm:rounded-xl transition-colors shadow-md flex items-center gap-1.5 whitespace-nowrap"
+                  id="btn-landing-login-topbar"
+                >
+                  <LogIn className="w-3.5 h-3.5 hidden sm:inline-block" />
+                  <span>{language === 'id' ? 'Masuk' : 'Sign In'}</span>
+                </button>
+              )}
             </div>
           </header>
 
           <LandingPage 
+            currentUser={currentUser}
             onStartAsGuest={() => {
               setCurrentUser(null);
               setAppState('upload');
@@ -485,6 +599,13 @@ export default function App() {
             onOpenLogIn={(presetRole) => {
               setActiveRolePreset(presetRole);
               setAppState('login');
+            }}
+            onOpenDashboard={() => {
+              if (currentUser?.role === 'admin' || currentUser?.role === 'super_admin') {
+                setAppState('admin');
+              } else {
+                setAppState('upload');
+              }
             }}
             language={language}
           />
@@ -516,11 +637,11 @@ export default function App() {
 
   return (
     <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
-      <div className="min-h-[100dvh] md:h-full w-full max-w-5xl bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl">
+      <div className="min-h-[100dvh] md:h-full w-full max-w-[90rem] bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl">
         
         {/* Header */}
         <header className="h-auto md:h-16 bg-white border-b border-slate-200 px-4 md:px-8 py-3 md:py-0 flex flex-col md:flex-row items-center justify-between shrink-0 gap-3 md:gap-0">
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 cursor-pointer" onClick={() => setAppState('landing')}>
             <div className="w-8 h-8 bg-pink-500 rounded-lg flex items-center justify-center">
               <Sparkles className="text-white w-4 h-4" />
             </div>
@@ -747,28 +868,8 @@ export default function App() {
                           </motion.div>
                         </div>
                       ) : (
-                        /* Face Analysis Points */
-                        <>
-                          <div className="absolute top-[35%] left-[30%] -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                            <div className="w-4 h-4 bg-pink-500/30 rounded-full animate-ping absolute"></div>
-                            <div className="w-2 h-2 bg-pink-500 rounded-full relative z-10 border border-white"></div>
-                          </div>
-                          <div className="absolute top-[35%] right-[30%] translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                            <div className="w-4 h-4 bg-pink-500/30 rounded-full animate-ping absolute"></div>
-                            <div className="w-2 h-2 bg-pink-500 rounded-full relative z-10 border border-white"></div>
-                          </div>
-                          <div className="absolute top-[55%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                            <div className="w-6 h-6 bg-blue-500/30 rounded-full animate-ping absolute"></div>
-                            <div className="w-2 h-2 bg-blue-500 rounded-full relative z-10 border border-white"></div>
-                            <span className="absolute -bottom-6 text-[10px] bg-black/60 text-white px-2 py-0.5 rounded shadow whitespace-nowrap">T-Zone</span>
-                          </div>
-                          <div className="absolute top-[75%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex items-center justify-center">
-                            <div className="w-2 h-2 bg-emerald-500 rounded-full relative z-10 border border-white"></div>
-                          </div>
-                          
-                          {/* Scanning Line Effect */}
-                          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-pink-500 to-transparent animate-[scan_3s_ease-in-out_infinite] opacity-50 shadow-[0_0_10px_rgba(236,72,153,0.8)]"></div>
-                        </>
+                        /* Hide static face tracking overlays to focus clearly on user face and glasses features */
+                        <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent animate-[scan_3s_ease-in-out_infinite] opacity-30 shadow-[0_0_10px_rgba(34,211,238,0.5)]"></div>
                       )}
                       
                       <div className="absolute inset-0 border-4 border-pink-500/20 rounded-xl pointer-events-none"></div>
@@ -939,7 +1040,7 @@ export default function App() {
               onClick={() => setShowChangelog(true)} 
               className="text-[10px] text-pink-500 hover:text-pink-600 font-mono tracking-wider font-bold underline decoration-pink-500/30 underline-offset-2 transition-colors cursor-pointer"
             >
-              v2.29.0 Updates
+              v2.54.0 Updates
             </button>
           </div>
         </footer>
@@ -949,6 +1050,12 @@ export default function App() {
       {showChangelog && (
         <ChangelogModal onClose={() => setShowChangelog(false)} />
       )}
+      
+      <GlassesDetectedModal 
+        isOpen={showGlassesAlert} 
+        onClose={() => setShowGlassesAlert(false)} 
+        language={language} 
+      />
     </div>
   );
 }

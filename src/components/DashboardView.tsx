@@ -49,23 +49,17 @@ export function DashboardView({
     const prefetchFeatures = async () => {
       setIsDetailedFaceLoading(true);
       try {
-        let base64 = imageSrc;
-        if (imageSrc.startsWith('blob:')) {
-          const fetchedBlob = await fetch(imageSrc).then(r => r.blob());
-          base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => resolve(reader.result as string);
-            reader.onerror = reject;
-            reader.readAsDataURL(fetchedBlob);
-          });
-        }
+        let fileBlob = await fetch(imageSrc).then(r => r.blob());
+
+        const preferredModel = localStorage.getItem('lumina-settings-model') || 'gemini-3.5-flash';
+        const formData = new FormData();
+        formData.append('image', fileBlob, 'image.jpg');
+        formData.append('language', language);
+        formData.append('preferredModel', preferredModel);
 
         const res = await fetch('/api/analyze-features', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ imageBase64: base64, language: language })
+          body: formData
         });
         
         if (res.ok) {
@@ -447,12 +441,12 @@ export function DashboardView({
         variants={containerVariants}
         initial="hidden"
         animate="show"
-        className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 pb-6"
+        className="flex-1 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4 pb-6"
       >
         {/* 1. Skin Analysis */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl border border-pink-100 p-3 sm:p-4 shadow-sm col-span-1 md:row-span-1 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group"
+          className="bg-white rounded-xl border border-pink-100 p-3 sm:p-4 shadow-sm col-span-1 xl:col-span-1 md:row-span-1 cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden group"
           data-testid="card-skin-analysis"
           onClick={() => setShowSkinAnalysisModal(true)}
         >
