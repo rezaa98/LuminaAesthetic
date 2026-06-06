@@ -8,6 +8,55 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.60.0",
+      date: "06 June 2026",
+      changes: [
+        "Interactive Onboarding Tutorial: Menambahkan panduan langkah-demi-langkah (driver.js) untuk pengguna baru yang menyentuh fase unggah gambar dan tahap analisis matriks wajah."
+      ],
+    },
+    {
+      version: "v2.59.0",
+      date: "06 June 2026",
+      changes: [
+        "Visualisasi Data: Integrasi Recharts untuk menampilkan visual radar chart metrik kualitas kulit (hidrasi, elastisitas, pori-pori, tekstur) menggantikan indikator teks lama di Dashboard."
+      ],
+    },
+    {
+      version: "v2.58.0",
+      date: "31 May 2026",
+      changes: [
+        "Sistem Kontrol Global: Super Admin kini memiliki akses melalui Panel Kontrol Global untuk mengatur batas harian uji coba Guest dan User. Pengaturan ini tersentralisasi dan juga memungkinkan mematikan modul-modul analisis tertentu secara massal berdasarkan sistem."
+      ],
+    },
+    {
+      version: "v2.57.3",
+      date: "31 May 2026",
+      changes: [
+        "Perbaikan Sistem: Menangani issue 'Uncaught Error in snapshot listener' akibat permission denied pada modul Firestore, mencegah crash aplikasi saat memuat Admin Panel."
+      ],
+    },
+    {
+      version: "v2.57.2",
+      date: "31 May 2026",
+      changes: [
+        "Sistem Limitasi: Menambahkan notifikasi modal interaktif ketika batas pemakaian tercapai (1x untuk Guest), dengan integrasi tombol pintasan unuk masuk (login) menggunakan akun Google."
+      ],
+    },
+    {
+      version: "v2.57.1",
+      date: "31 May 2026",
+      changes: [
+        "Perbaikan Sistem: Mencegah tampilan halaman HTML putih kosong akibat pemblokiran cookie cross-origin (Safari/Incognito) dengan memberikan instruksi untuk membuka aplikasi di tab baru."
+      ],
+    },
+    {
+      version: "v2.57.0",
+      date: "31 May 2026",
+      changes: [
+        "Fitur Baru: Menambahkan notifikasi Disclaimer Medis sebagai langkah preventif saat pengguna mencoba membuka kamera untuk pengambilan foto (AI Live Camera)."
+      ],
+    },
+    {
       version: "v2.56.5",
       date: "31 May 2026",
       changes: [

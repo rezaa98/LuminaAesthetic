@@ -44,6 +44,9 @@ export const processImageWithAI = async (imageFile: File | null, language: strin
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
+      if (text.includes("Cookie check") || text.includes("aistudio_auth_flow")) {
+        throw new Error("Authentikasi diblokir oleh browser (Cookie Terblokir). Silakan buka aplikasi di tab baru (ikon panah di kanan atas) atau matikan mode incognito/Private Browsing.");
+      }
       console.error("Non-JSON Error Response received:", text);
       throw new Error("Server returned non-JSON error response. Please check if your GEMINI_API_KEY is configured.");
     }
@@ -54,6 +57,9 @@ export const processImageWithAI = async (imageFile: File | null, language: strin
   const contentType = response.headers.get("content-type");
   if (!contentType || !contentType.includes("application/json")) {
     const text = await response.text();
+    if (text.includes("Cookie check") || text.includes("aistudio_auth_flow")) {
+      throw new Error("Authentikasi diblokir oleh browser (Cookie Terblokir). Silakan buka aplikasi di tab baru (ikon panah di kanan atas) atau matikan mode incognito/Private Browsing.");
+    }
     console.error("Non-JSON Success Response received:", text);
     throw new Error("Server returned non-JSON response in success path. Please try again.");
   }

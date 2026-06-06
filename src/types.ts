@@ -1,3 +1,9 @@
+export interface SystemSettings {
+  guestDailyLimit: number;
+  userDailyLimit: number;
+  globalDisabledFeatures: string[];
+}
+
 export type AppState = 'landing' | 'login' | 'admin' | 'upload' | 'analyzing' | 'results' | 'history';
 
 export type UserRole = 'super_admin' | 'admin' | 'user';
@@ -39,6 +45,7 @@ export interface AnalysisResult {
     notes: string;
     texture?: number;
     pores?: number;
+    elasticity?: number;
   };
   skinType: {
     type: string;

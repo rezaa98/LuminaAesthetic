@@ -216,10 +216,12 @@ export const onSnapshot = (
 ) => {
   if (isFirebaseActive && reference && !reference._isDummy) {
     try {
-      return fbOnSnapshot(reference, onNext, onError);
+      const safeOnError = onError || ((e: any) => console.warn("Uncaught Firebase onSnapshot Error:", e));
+      return fbOnSnapshot(reference, onNext, safeOnError);
     } catch (e) {
       console.error("fbOnSnapshot failed, falling back:", e);
       if (onError) onError(e);
+      else console.warn("Uncaught Firebase onSnapshot Error (fallback):", e);
     }
   }
   

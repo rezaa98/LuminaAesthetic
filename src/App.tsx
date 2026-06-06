@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Sparkles, ArrowRight, Loader, LogIn, LogOut, ChevronRight, UserCog, UserCheck, Shield, Target, Sun, Smile, ShieldCheck, Lock } from 'lucide-react';
 import { motion } from 'motion/react';
 import * as faceapi from '@vladmandic/face-api';
-import { AppState, AnalysisResult, HistoryItem, User, AuditLog, UserRole } from './types';
+import { AppState, AnalysisResult, HistoryItem, User, AuditLog, UserRole, SystemSettings } from './types';
 import localforage from 'localforage';
 import { useLanguage } from './contexts/LanguageContext';
 import { auth, db, onAuthStateChanged, collection, query, where, onSnapshot, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, orderBy, signOut, increment } from './firebase';
@@ -56,6 +56,7 @@ import { processImageWithAI, checkGlassesWithAI } from './mockData';
 import { LandingPage } from './components/LandingPage';
 import { AuthView } from './components/AuthView';
 import { AdminPanel } from './components/AdminPanel';
+import { LimitModal } from './components/LimitModal';
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>('landing');
@@ -68,7 +69,37 @@ export default function App() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [showChangelog, setShowChangelog] = useState<boolean>(false);
   const [showGlassesAlert, setShowGlassesAlert] = useState<boolean>(false);
+  const [limitAlertType, setLimitAlertType] = useState<'guest' | 'user' | null>(null);
+  const [globalSettings, setGlobalSettings] = useState<SystemSettings>({
+    guestDailyLimit: 1,
+    userDailyLimit: 5,
+    globalDisabledFeatures: []
+  });
   const { lang, language, setLanguage } = useLanguage();
+
+  // Load Global Settings
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'system_settings', 'global'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setGlobalSettings({
+          guestDailyLimit: data.guestDailyLimit ?? 1,
+          userDailyLimit: data.userDailyLimit ?? 5,
+          globalDisabledFeatures: data.globalDisabledFeatures ?? []
+        });
+      } else {
+        // Initialize default
+        setDoc(doc(db, 'system_settings', 'global'), {
+          guestDailyLimit: 1,
+          userDailyLimit: 5,
+          globalDisabledFeatures: []
+        }).catch(err => console.error("Error init global settings (probably permissions, safe to ignore for non admins):", err));
+      }
+    }, (error) => {
+       console.warn("Failed to listen to global settings (permission denied?)", error);
+    });
+    return () => unsub();
+  }, []);
 
   // Load User Session & History On Mount
   useEffect(() => {
@@ -406,7 +437,7 @@ export default function App() {
   const handleUpload = async (file: File | null) => {
     // Check Limits First
     const isGuest = !currentUser;
-    const maxLimit = isGuest ? 1 : 5;
+    const maxLimit = isGuest ? globalSettings.guestDailyLimit : globalSettings.userDailyLimit;
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
     const limitKey = 'lumina_usage_limits';
     
@@ -423,10 +454,7 @@ export default function App() {
     } catch(e) {}
     
     if (storedData.count >= maxLimit) {
-      alert(language === 'id' 
-        ? `Batas pemakaian tercapai! ${isGuest ? 'Guest dibatasi 1x' : 'User dibatasi 5x'} pemindaian per hari.` 
-        : `Usage limit reached! ${isGuest ? 'Guests are limited to 1' : 'Users are limited to 5'} scans per day.`
-      );
+      setLimitAlertType(isGuest ? 'guest' : 'user');
       return;
     }
     
@@ -1052,13 +1080,24 @@ export default function App() {
                   imageSrc={uploadedImageURL} 
                   consultantNotes={consultantNotes}
                   consultantName={consultantName}
-                  disabledFeatures={currentUser?.disabledFeatures || []}
+                  disabledFeatures={Array.from(new Set([...(currentUser?.disabledFeatures || []), ...(globalSettings.globalDisabledFeatures || [])]))}
                 />
               )
             )}
           </section>
           </>
           )}
+
+        {appState === 'admin' && currentUser && (
+          <AdminPanel 
+            currentUser={currentUser} 
+            history={history}
+            onAddAuditLog={handleAddAuditLog}
+            onSaveConsultantNotes={handleSaveConsultantNotes}
+            onDeleteHistoryItem={handleDeleteHistoryItem}
+            language={language}
+          />
+        )}
 
         </main>
 
@@ -1097,6 +1136,17 @@ export default function App() {
         isOpen={showGlassesAlert} 
         onClose={() => setShowGlassesAlert(false)} 
         language={language} 
+      />
+
+      <LimitModal 
+        type={limitAlertType}
+        onClose={() => setLimitAlertType(null)}
+        onLogin={() => {
+          setLimitAlertType(null);
+          setAppState('login');
+        }}
+        guestDailyLimit={globalSettings.guestDailyLimit}
+        userDailyLimit={globalSettings.userDailyLimit}
       />
     </div>
   );

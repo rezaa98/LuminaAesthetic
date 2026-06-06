@@ -11,6 +11,9 @@ import { GlassesFrameModal } from "./GlassesFrameModal";
 import { ColorAnalysisModal } from "./ColorAnalysisModal";
 import { HairstyleSvg } from "./HairstyleSvg";
 import { useLanguage } from "../contexts/LanguageContext";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
 
 interface DashboardViewProps {
   data: AnalysisResult;
@@ -42,6 +45,54 @@ export function DashboardView({
   const [faceData, setFaceData] = useState<any>(null);
   const [isNotesExpanded, setIsNotesExpanded] = useState(true);
   const [isDetailedSymmetryExpanded, setIsDetailedSymmetryExpanded] = useState(false);
+
+  useEffect(() => {
+    const tutorialDone = localStorage.getItem('lumina_tutorial_dashboard_done');
+    if (!tutorialDone && !showSkinAnalysisModal && !showFaceFeatureModal && !showGlassesModal && !showColorAnalysisModal) {
+      setTimeout(() => {
+        const driverObj = driver({
+          showProgress: true,
+          allowClose: false,
+          steps: [
+            { 
+              element: '[data-testid="card-skin-analysis"]', 
+              popover: { 
+                title: language === 'id' ? 'Diagnosis Kulit' : 'Skin Diagnosis', 
+                description: language === 'id' ? 'Klik di sini untuk melihat diagnosis tipe kulit, tingkat hidrasi, dsb.' : 'Click to see skin diagnosis details.', 
+                side: "bottom", align: 'start' 
+              } 
+            },
+            { 
+              element: '[data-testid="card-face-feature"]', 
+              popover: { title: language === 'id' ? 'Geometri Wajah' : 'Face Geometry', description: language === 'id' ? 'Pelajari simetri dan landmark anatomi wajah Anda.' : 'Learn about facial symmetry and landmarks.', side: "left", align: 'start' } 
+            },
+            { 
+              element: '[data-testid="card-skin-type"]', 
+              popover: { title: language === 'id' ? 'Tipe Kulit' : 'Skin Type', description: language === 'id' ? 'Menampilkan klasifikasi tipe kulit beserta rasio area wajah.' : 'Displays skin type classification and zone conditions.', side: "top", align: 'start' } 
+            },
+            { 
+              element: '[data-testid="card-spectacles"]', 
+              popover: { title: language === 'id' ? 'Bentuk Wajah & Virtual AR' : 'Face Shape & AR View', description: language === 'id' ? 'Simak bentuk wajah dan cobalah kacamata dengan Virtual Try-On AR.' : 'See your face shape and try on AR glasses.', side: "left", align: 'start' } 
+            },
+            { 
+              element: '[data-testid="card-color-analysis"]', 
+              popover: { title: language === 'id' ? 'Analisis Warna' : 'Color Analysis', description: language === 'id' ? 'Eksplorasi spektrum palet warna yang paling pas untuk tampilanmu.' : 'Explore seasonal color palettes that suit you best.', side: "top", align: 'start' } 
+            }
+          ],
+          onDestroyStarted: () => {
+             localStorage.setItem('lumina_tutorial_dashboard_done', 'true');
+             driverObj.destroy();
+          }
+        });
+        
+        try {
+           driverObj.drive();
+        } catch (e) {
+           console.warn("Driver fail", e);
+        }
+      }, 1000);
+    }
+  }, [language, showSkinAnalysisModal, showFaceFeatureModal, showGlassesModal, showColorAnalysisModal]);
 
   // Background pre-fetch for detailed face features (symmetry, coordinates etc.)
   useEffect(() => {
@@ -88,6 +139,14 @@ export function DashboardView({
       }
         
         if (res.ok) {
+          const contentType = res.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            const text = await res.text();
+            if (text.includes("Cookie check") || text.includes("aistudio_auth_flow")) {
+              throw new Error("Cookie blocked, requiring new tab.");
+            }
+            throw new Error("Non-JSON Background Prefetch response.");
+          }
           const resData = await res.json();
           if (isMounted) {
             setDetailedFaceData(prev => ({ ...prev, [language]: resData }));
@@ -484,23 +543,38 @@ export function DashboardView({
           <div className="absolute top-0 right-0 p-2 opacity-50 group-hover:opacity-100 transition-opacity">
             <ScanFace size={16} className="text-pink-500" />
           </div>
-          <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 mb-1.5 sm:mb-2 tracking-wider">
+          <h3 className="text-[10px] sm:text-xs font-bold uppercase text-slate-400 mb-1.5 sm:mb-2 tracking-wider z-10 relative">
             {lang.skinDiagnosis}
           </h3>
-          <div className="flex items-center gap-3 sm:gap-4">
+          <div className="w-full h-40 sm:h-48 mt-[-10px] sm:mt-[-20px] mb-2 pointer-events-none">
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart 
+                cx="50%" 
+                cy="50%" 
+                outerRadius="70%" 
+                data={[
+                  { subject: language === 'id' ? 'Hidrasi' : 'Hydration', A: data.skinAnalysis.hydration || 60, fullMark: 100 },
+                  { subject: language === 'id' ? 'Elastisitas' : 'Elasticity', A: data.skinAnalysis.elasticity || 75, fullMark: 100 },
+                  { subject: language === 'id' ? 'Pori-pori' : 'Pores', A: data.skinAnalysis.pores || 70, fullMark: 100 },
+                  { subject: language === 'id' ? 'Tekstur' : 'Texture', A: data.skinAnalysis.texture || 65, fullMark: 100 },
+                ]}
+              >
+                <PolarGrid stroke="#fce7f3" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
+                <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                <Radar name="Skin Quality" dataKey="A" stroke="#ec4899" strokeWidth={2} fill="#fbcfe8" fillOpacity={0.6} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="flex items-center gap-3 sm:gap-4 relative z-10">
             <div className="flex-1 min-w-0">
-              <p className="text-xs sm:text-sm font-bold text-slate-800">
-                {lang.hydrationLevel}:{" "}
-                <span className="text-pink-600">
-                  {data.skinAnalysis.hydration}%
-                </span>
-              </p>
-              <p className="text-[10px] text-slate-500 mt-1 leading-relaxed line-clamp-2 sm:line-clamp-3">
+              <p className="text-[10px] sm:text-[11px] text-slate-500 leading-relaxed line-clamp-2">
                 {data.skinAnalysis.notes}
               </p>
             </div>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border-4 border-pink-500 flex items-center justify-center text-[10px] font-bold text-pink-600 shrink-0">
-              {data.skinAnalysis.rednessLevels.substring(0,3).toUpperCase()}
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full border border-pink-200 flex flex-col items-center justify-center text-[10px] font-bold text-pink-600 shrink-0 bg-pink-50/50 shadow-sm">
+              <span className="text-[8px] text-pink-400 font-medium uppercase">{language === 'id' ? 'MERAH' : 'RED'}</span>
+              <span className="-mt-1 leading-tight">{data.skinAnalysis.rednessLevels.substring(0,3).toUpperCase()}</span>
             </div>
           </div>
         </motion.div>

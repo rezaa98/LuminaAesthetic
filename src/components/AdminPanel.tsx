@@ -24,6 +24,7 @@ import * as htmlToImage from 'html-to-image';
 import jsPDF from 'jspdf';
 import { PdfReportTemplate } from './PdfReportTemplate';
 import { FeatureAccessModal } from './FeatureAccessModal';
+import { GlobalSettingsModal } from './GlobalSettingsModal';
 
 import { collection, onSnapshot, query, orderBy, updateDoc, doc, setDoc, db } from '../firebase';
 
@@ -55,6 +56,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [editingScanId, setEditingScanId] = useState<string | null>(null);
   const [clinicianNote, setClinicianNote] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string>('');
+  const [showGlobalSettings, setShowGlobalSettings] = useState(false);
 
   // Pagination for Diagnosis Ledgers
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -97,11 +99,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
        const userUnsub = onSnapshot(collection(db, 'users'), snapshot => {
          const users: User[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
          setUserList(users);
+       }, error => {
+         console.warn("Failed to fetch users (Permissions?)", error);
        });
        
        const auditUnsub = onSnapshot(query(collection(db, 'audit_logs'), orderBy('timestamp', 'asc')), snapshot => {
          const logs: AuditLog[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AuditLog));
          setAuditLogs(logs);
+       }, error => {
+         console.warn("Failed to fetch audit logs (Permissions?)", error);
        });
 
        return () => {
@@ -798,6 +804,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             </div>
 
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm p-5 sm:p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
+                <div>
+                  <h4 className="font-bold text-slate-800 text-sm">{isEn ? 'Global Control Panel' : 'Panel Kontrol Global'}</h4>
+                  <p className="text-xs text-slate-500 mt-1 max-w-xl">
+                    {isEn 
+                      ? 'Configure access policies globally, limit daily scans by users or guests, and disable major features across all accounts.'
+                      : 'Konfigurasikan kebijakan akses secara global, tentukan batas pemindaian harian berdasarkan tipe user/guest, dan nonaktifkan fitur untuk seluruh akun.'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowGlobalSettings(true)}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs tracking-wide transition-colors whitespace-nowrap"
+                >
+                  {isEn ? 'Open Settings Manager' : 'Buka Panel Konfigurasi'}
+                </button>
+              </div>
+
               {/* Feature Toggle */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-6">
                 <div>
@@ -1151,6 +1174,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           onClose={() => setSelectedUserForFeatures(null)}
           onAddAuditLog={onAddAuditLog}
           language={language}
+        />
+      )}
+
+      {showGlobalSettings && (
+        <GlobalSettingsModal
+          language={language}
+          onClose={() => setShowGlobalSettings(false)}
+          onAddAuditLog={onAddAuditLog}
         />
       )}
 

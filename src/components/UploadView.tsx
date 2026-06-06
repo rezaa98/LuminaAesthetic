@@ -1,6 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { UploadCloud, Camera, X, CircleDot, AlertCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
+import { driver } from "driver.js";
+import "driver.js/dist/driver.css";
 
 interface UploadViewProps {
   onUpload: (file: File | null) => void;
@@ -16,12 +18,42 @@ export function UploadView({ onUpload }: UploadViewProps) {
   const { lang, language } = useLanguage();
 
   const [isDetecting, setIsDetecting] = useState(false);
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   useEffect(() => {
+    // Show tutorial if this is their first time
+    const tutorialDone = localStorage.getItem('lumina_tutorial_upload_done');
+    if (!tutorialDone) {
+      setTimeout(() => {
+        const driverObj = driver({
+          showProgress: false,
+          allowClose: false,
+          steps: [
+            { 
+              element: '#tutorial-camera-btn', 
+              popover: { 
+                title: language === 'id' ? 'Ambil Gambar' : 'Take a Photo', 
+                description: language === 'id' 
+                  ? 'Mulai dari sini, ambil gambar wajahmu atau unggah dari galeri. Pastikan lepas kacamata terlebih dahulu agar hasilnya presisi.' 
+                  : 'Start here to take a photo or upload from gallery. Please take off your glasses first for precise results.', 
+                side: "bottom", 
+                align: 'start' 
+              } 
+            }
+          ],
+          onDestroyStarted: () => {
+             localStorage.setItem('lumina_tutorial_upload_done', 'true');
+             driverObj.destroy();
+          }
+        });
+        driverObj.drive();
+      }, 500); // Wait for animation to finish
+    }
+
     return () => {
       stopCamera();
     };
-  }, []);
+  }, [language]);
 
   const stopCamera = () => {
     if (stream) {
@@ -29,6 +61,15 @@ export function UploadView({ onUpload }: UploadViewProps) {
       setStream(null);
     }
     setIsCameraOpen(false);
+  };
+
+  const handleCameraRequest = () => {
+    setShowDisclaimer(true);
+  };
+
+  const handleConfirmDisclaimer = () => {
+    setShowDisclaimer(false);
+    startCamera();
   };
 
   const startCamera = async () => {
@@ -307,7 +348,8 @@ export function UploadView({ onUpload }: UploadViewProps) {
 
       {/* 1. PRIMARY: AI Camera Capture Card (Beautifully centered, elegant stack) */}
       <div 
-        onClick={startCamera}
+        id="tutorial-camera-btn"
+        onClick={handleCameraRequest}
         className="w-full bg-[#fdf5f8] hover:bg-[#fcf1f5] rounded-xl border border-pink-200/50 p-4 text-center cursor-pointer transition-all duration-300 hover:shadow-sm flex flex-col items-center justify-center relative overflow-hidden"
       >
         {/* Compact Recommended Tag */}
@@ -334,7 +376,7 @@ export function UploadView({ onUpload }: UploadViewProps) {
         <button 
           onClick={(e) => {
             e.stopPropagation();
-            startCamera();
+            handleCameraRequest();
           }}
           className="mt-2.5 bg-pink-600 hover:bg-pink-700 text-white px-4 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-all duration-150 transform active:scale-95 cursor-pointer flex items-center gap-1"
         >
@@ -383,6 +425,42 @@ export function UploadView({ onUpload }: UploadViewProps) {
       <p className="text-[7.5px] text-slate-400 text-center uppercase tracking-wider mt-3.5 font-bold">
         {language === 'id' ? 'Kerahasiaan Privasi Diperlakukan Secara Profesional' : 'Patient Privacy Professionally Protected'}
       </p>
+
+      {/* Medical Disclaimer Modal */}
+      {showDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)' }} onClick={() => setShowDisclaimer(false)}>
+          <div 
+            className="bg-white rounded-2xl p-6 max-w-[320px] w-full shadow-2xl relative animate-fade-in-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center mb-4 mx-auto text-amber-600">
+              <AlertCircle size={24} />
+            </div>
+            <h3 className="text-[15px] font-bold text-slate-800 text-center mb-2 leading-tight">
+              {language === 'id' ? 'Disclaimer Medis' : 'Medical Disclaimer'}
+            </h3>
+            <p className="text-[11px] text-slate-500 text-center mb-6 leading-relaxed">
+              {language === 'id' 
+                ? 'Aplikasi ini berfungsi sebagai alat bantu pemantauan mandiri dan analisis awal (preventif). Sistem ini bukan merupakan rujukan diagnostik medis resmi. Untuk penanganan kondisi kulit yang spesifik, evaluasi mendetail, maupun pengobatan medis, pengguna tetap diwajibkan untuk berkonsultasi langsung dengan dokter spesialis kulit (dermatolog) terkait.'
+                : 'This application serves as a tool for self-monitoring and preliminary (preventive) analysis. This system is not a formal medical diagnostic reference. For the management of specific skin conditions, detailed evaluation, or medical treatment, users are still required to consult directly with a relevant dermatologist.'}
+            </p>
+            <div className="flex flex-col gap-2.5">
+              <button 
+                onClick={handleConfirmDisclaimer}
+                className="w-full py-2.5 rounded-xl bg-[#0f172a] text-white font-bold text-[10px] tracking-widest uppercase hover:bg-slate-800 transition-colors shadow-md hover:shadow-lg"
+              >
+                {language === 'id' ? 'Saya Mengerti, Buka Kamera' : 'I Understand, Open Camera'}
+              </button>
+              <button 
+                onClick={() => setShowDisclaimer(false)}
+                className="w-full py-2 rounded-xl bg-slate-50 text-slate-500 font-bold text-[10px] tracking-widest uppercase hover:bg-slate-100 transition-colors border border-slate-200"
+              >
+                {language === 'id' ? 'Batal' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
