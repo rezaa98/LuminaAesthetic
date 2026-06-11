@@ -57,6 +57,7 @@ import { LandingPage } from './components/LandingPage';
 import { AuthView } from './components/AuthView';
 import { AdminPanel } from './components/AdminPanel';
 import { LimitModal } from './components/LimitModal';
+import { FloatingHelpButton } from './components/FloatingHelpButton';
 
 export default function App() {
   const [appState, setAppState] = useState<AppState>('landing');
@@ -261,7 +262,7 @@ export default function App() {
   const [arModelsLoaded, setArModelsLoaded] = useState<boolean>(false);
   const [arStatus, setArStatus] = useState<string>('MENUNGGU MODEL...');
   const [faceData, setFaceData] = useState<{ x: number, y: number, width: number, angle: number } | null>(null);
-  const reqRef = useRef<number>();
+  const reqRef = useRef<number | undefined>(undefined);
   const emaRef = useRef<{ x: number, y: number, width: number, angle: number } | null>(null);
 
   useEffect(() => {
@@ -545,6 +546,12 @@ export default function App() {
   const handleViewHistory = () => {
     setAppState('history');
   };
+
+  const handleTriggerTour = () => {
+    if (appState === 'results') {
+      window.dispatchEvent(new CustomEvent('START_TUTORIAL_lumina_tutorial_dashboard_v3'));
+    }
+  };
   
   const handleSelectHistoryItem = (item: HistoryItem) => {
     setAnalysisCache({ [language]: item.analysisData });
@@ -566,8 +573,20 @@ export default function App() {
         const fetchTranslation = async () => {
           setAppState('analyzing');
           try {
-            const response = await fetch(uploadedImageURL);
-            const blob = await response.blob();
+            let blob: Blob;
+            if (uploadedImageURL.startsWith('data:')) {
+              const byteString = atob(uploadedImageURL.split(',')[1]);
+              const mimeString = uploadedImageURL.split(',')[0].split(':')[1].split(';')[0];
+              const ab = new ArrayBuffer(byteString.length);
+              const ia = new Uint8Array(ab);
+              for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i);
+              }
+              blob = new Blob([ab], { type: mimeString });
+            } else {
+              const response = await fetch(uploadedImageURL);
+              blob = await response.blob();
+            }
             const file = new File([blob], 'image.jpg', { type: blob.type });
             const result = await processImageWithAI(file, targetLang);
             setAnalysisCache(prev => ({ ...prev, [targetLang]: result }));
@@ -706,6 +725,7 @@ export default function App() {
 
   return (
     <div className="min-h-[100dvh] md:h-screen w-full bg-slate-50 flex items-center justify-center p-0 md:p-6 font-sans md:overflow-hidden text-slate-800">
+      {appState === 'results' && <FloatingHelpButton onClick={handleTriggerTour} />}
       <div className="min-h-[100dvh] md:h-full w-full max-w-[90rem] bg-slate-50 md:rounded-[2rem] flex flex-col md:overflow-hidden border-0 md:border border-slate-200 md:shadow-xl">
         
         {/* Header */}

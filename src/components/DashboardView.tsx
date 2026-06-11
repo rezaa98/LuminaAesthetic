@@ -12,8 +12,8 @@ import { ColorAnalysisModal } from "./ColorAnalysisModal";
 import { HairstyleSvg } from "./HairstyleSvg";
 import { useLanguage } from "../contexts/LanguageContext";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
-import { driver } from "driver.js";
-import "driver.js/dist/driver.css";
+import { TutorialTour } from "./TutorialTour";
+import { Step } from "react-joyride";
 
 interface DashboardViewProps {
   data: AnalysisResult;
@@ -45,54 +45,6 @@ export function DashboardView({
   const [faceData, setFaceData] = useState<any>(null);
   const [isNotesExpanded, setIsNotesExpanded] = useState(true);
   const [isDetailedSymmetryExpanded, setIsDetailedSymmetryExpanded] = useState(false);
-
-  useEffect(() => {
-    const tutorialDone = localStorage.getItem('lumina_tutorial_dashboard_done');
-    if (!tutorialDone && !showSkinAnalysisModal && !showFaceFeatureModal && !showGlassesModal && !showColorAnalysisModal) {
-      setTimeout(() => {
-        const driverObj = driver({
-          showProgress: true,
-          allowClose: false,
-          steps: [
-            { 
-              element: '[data-testid="card-skin-analysis"]', 
-              popover: { 
-                title: language === 'id' ? 'Diagnosis Kulit' : 'Skin Diagnosis', 
-                description: language === 'id' ? 'Klik di sini untuk melihat diagnosis tipe kulit, tingkat hidrasi, dsb.' : 'Click to see skin diagnosis details.', 
-                side: "bottom", align: 'start' 
-              } 
-            },
-            { 
-              element: '[data-testid="card-face-feature"]', 
-              popover: { title: language === 'id' ? 'Geometri Wajah' : 'Face Geometry', description: language === 'id' ? 'Pelajari simetri dan landmark anatomi wajah Anda.' : 'Learn about facial symmetry and landmarks.', side: "left", align: 'start' } 
-            },
-            { 
-              element: '[data-testid="card-skin-type"]', 
-              popover: { title: language === 'id' ? 'Tipe Kulit' : 'Skin Type', description: language === 'id' ? 'Menampilkan klasifikasi tipe kulit beserta rasio area wajah.' : 'Displays skin type classification and zone conditions.', side: "top", align: 'start' } 
-            },
-            { 
-              element: '[data-testid="card-spectacles"]', 
-              popover: { title: language === 'id' ? 'Bentuk Wajah & Virtual AR' : 'Face Shape & AR View', description: language === 'id' ? 'Simak bentuk wajah dan cobalah kacamata dengan Virtual Try-On AR.' : 'See your face shape and try on AR glasses.', side: "left", align: 'start' } 
-            },
-            { 
-              element: '[data-testid="card-color-analysis"]', 
-              popover: { title: language === 'id' ? 'Analisis Warna' : 'Color Analysis', description: language === 'id' ? 'Eksplorasi spektrum palet warna yang paling pas untuk tampilanmu.' : 'Explore seasonal color palettes that suit you best.', side: "top", align: 'start' } 
-            }
-          ],
-          onDestroyStarted: () => {
-             localStorage.setItem('lumina_tutorial_dashboard_done', 'true');
-             driverObj.destroy();
-          }
-        });
-        
-        try {
-           driverObj.drive();
-        } catch (e) {
-           console.warn("Driver fail", e);
-        }
-      }, 1000);
-    }
-  }, [language, showSkinAnalysisModal, showFaceFeatureModal, showGlassesModal, showColorAnalysisModal]);
 
   // Background pre-fetch for detailed face features (symmetry, coordinates etc.)
   useEffect(() => {
@@ -134,11 +86,11 @@ export function DashboardView({
           body: formData
         });
       } catch (err) {
-        console.error("Failed to fetch /api/analyze-features (network error):", err);
-        throw err;
+        // Soft fail on network errors such as timeout or dev server restart to prevent scary console errors
+        return;
       }
-        
-        if (res.ok) {
+      
+      if (res.ok) {
           const contentType = res.headers.get("content-type");
           if (!contentType || !contentType.includes("application/json")) {
             const text = await res.text();
@@ -153,7 +105,7 @@ export function DashboardView({
           }
         }
       } catch (err) {
-        console.error("Background prefetch feature geometry failed:", err);
+        // Silently catch background prefetch errors (e.g. timeout or server restarts)
       } finally {
         if (isMounted) {
           setIsDetailedFaceLoading(false);
@@ -422,15 +374,50 @@ export function DashboardView({
     show: {
       opacity: 1,
       y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 },
+      transition: { type: "spring", stiffness: 300, damping: 24 } as any,
     },
   };
 
   return (
     <div
-      className="flex-1 overflow-y-auto flex flex-col h-full"
+      className="flex-1 md:overflow-y-auto flex flex-col h-full"
       id="dashboard-report-content"
     >
+      <TutorialTour 
+        tutorialKey="lumina_tutorial_dashboard_v3" 
+        steps={[
+          { 
+            target: '[data-testid="card-skin-analysis"]', 
+            title: language === 'id' ? 'Diagnosis Kulit' : 'Skin Diagnosis', 
+            content: language === 'id' ? 'Klik di sini untuk melihat diagnosis tipe kulit, tingkat hidrasi, dsb.' : 'Click to see skin diagnosis details.', 
+            placement: "auto"
+          },
+          { 
+            target: '[data-testid="card-face-feature"]', 
+            title: language === 'id' ? 'Geometri Wajah' : 'Face Geometry', 
+            content: language === 'id' ? 'Pelajari simetri dan landmark anatomi wajah Anda.' : 'Learn about facial symmetry and landmarks.', 
+            placement: "auto"
+          },
+          { 
+            target: '[data-testid="card-skin-type"]', 
+            title: language === 'id' ? 'Tipe Kulit' : 'Skin Type', 
+            content: language === 'id' ? 'Menampilkan klasifikasi tipe kulit beserta rasio area wajah.' : 'Displays skin type classification and zone conditions.', 
+            placement: "auto"
+          },
+          { 
+            target: '[data-testid="card-spectacles"]', 
+            title: language === 'id' ? 'Bentuk Wajah & Virtual AR' : 'Face Shape & AR View', 
+            content: language === 'id' ? 'Simak bentuk wajah dan cobalah kacamata dengan Virtual Try-On AR.' : 'See your face shape and try on AR glasses.', 
+            placement: "auto"
+          },
+          { 
+            target: '[data-testid="card-color-analysis"]', 
+            title: language === 'id' ? 'Analisis Warna' : 'Color Analysis', 
+            content: language === 'id' ? 'Eksplorasi spektrum palet warna yang paling pas untuk tampilanmu.' : 'Explore seasonal color palettes that suit you best.', 
+            placement: "auto"
+          }
+        ]}
+      />
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-bold text-slate-800">{lang.scanResult || 'Analysis Result'}</h2>
         {!disabledFeatures.includes('export_report') && (

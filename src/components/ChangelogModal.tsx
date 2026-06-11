@@ -8,6 +8,20 @@ interface ChangelogModalProps {
 export const ChangelogModal = ({ onClose }: ChangelogModalProps) => {
   const versions = [
     {
+      version: "v2.61.1",
+      date: "06 June 2026",
+      changes: [
+        "Bugfix: Memperbaiki error 'Failed to fetch' saat mengganti bahasa dari cache history dengan melakukan dekode base64 pada memori alih-alih menggunakan fetch API browser."
+      ],
+    },
+    {
+      version: "v2.61.0",
+      date: "06 June 2026",
+      changes: [
+        "Interactive Onboarding Tutorial Enhancement: Menambahkan Floating 'Getting Started' button agar pengguna dapat mengulang kembali panduan secara manual."
+      ],
+    },
+    {
       version: "v2.60.0",
       date: "06 June 2026",
       changes: [

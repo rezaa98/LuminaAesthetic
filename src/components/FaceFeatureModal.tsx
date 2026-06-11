@@ -306,15 +306,15 @@ export const FaceFeatureModal = ({ imageSrc, onClose, cachedData, onDataFecthed,
                       
                       {symmetryMode === 'left' && (
                          <>
-                           <img ref={imgRef} onLoad={performFaceDetection} src={imageSrc} alt="Left" crossOrigin="anonymous" className="w-full h-auto block" style={{ clipPath: `polygon(0 0, ${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, ${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%, 0 100%)` }} />
-                           <img src={imageSrc} alt="Left Flipped" crossOrigin="anonymous" className="w-full h-auto block absolute top-0 left-0" style={{ transformOrigin: `${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 50%`, transform: 'scaleX(-1)', clipPath: `polygon(${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, 100% 0, 100% 100%, ${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%)` }} />
+                           <img ref={imgRef} onLoad={performFaceDetection} src={imageSrc} alt="Left" crossOrigin="anonymous" className="w-full h-auto block" style={{ clipPath: `polygon(0 0, ${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, ${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%, 0 100%)` }} />
+                           <img src={imageSrc} alt="Left Flipped" crossOrigin="anonymous" className="w-full h-auto block absolute top-0 left-0" style={{ transformOrigin: `${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 50%`, transform: 'scaleX(-1)', clipPath: `polygon(${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, 100% 0, 100% 100%, ${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%)` }} />
                          </>
                       )}
 
                       {symmetryMode === 'right' && (
                          <>
-                           <img ref={imgRef} onLoad={performFaceDetection} src={imageSrc} alt="Right" crossOrigin="anonymous" className="w-full h-auto block" style={{ clipPath: `polygon(${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, 100% 0, 100% 100%, ${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%)` }} />
-                           <img src={imageSrc} alt="Right Flipped" crossOrigin="anonymous" className="w-full h-auto block absolute top-0 left-0" style={{ transformOrigin: `${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 50%`, transform: 'scaleX(-1)', clipPath: `polygon(0 0, ${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, ${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%, 0 100%)` }} />
+                           <img ref={imgRef} onLoad={performFaceDetection} src={imageSrc} alt="Right" crossOrigin="anonymous" className="w-full h-auto block" style={{ clipPath: `polygon(${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, 100% 0, 100% 100%, ${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%)` }} />
+                           <img src={imageSrc} alt="Right Flipped" crossOrigin="anonymous" className="w-full h-auto block absolute top-0 left-0" style={{ transformOrigin: `${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 50%`, transform: 'scaleX(-1)', clipPath: `polygon(0 0, ${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 0, ${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}% 100%, 0 100%)` }} />
                          </>
                       )}
                       
@@ -323,8 +323,8 @@ export const FaceFeatureModal = ({ imageSrc, onClose, cachedData, onDataFecthed,
                         <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible z-10 transition-opacity duration-300">
                           {/* Face Midline */}
                           <line 
-                             x1={`${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}%`} y1="0%" 
-                             x2={`${activeFaceBox ? (parseFloat(activeFaceBox.left) + parseFloat(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}%`} y2="100%" 
+                             x1={`${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}%`} y1="0%" 
+                             x2={`${activeFaceBox ? (Number(activeFaceBox.left) + Number(activeFaceBox.width)/2)/(activeFaceBox.scaleFactor||1) : 50}%`} y2="100%" 
                              stroke="rgba(236,72,153,0.8)" 
                              strokeWidth="1.5" 
                              strokeDasharray="4 4" 

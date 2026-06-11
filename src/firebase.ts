@@ -151,7 +151,7 @@ export const getDoc = async (docRef: any) => {
     try {
       return await fbGetDoc(docRef);
     } catch (e) {
-      console.error("fbGetDoc failed, falling back:", e);
+      throw e;
     }
   }
   return {
@@ -166,7 +166,7 @@ export const setDoc = async (docRef: any, data: any, options?: any) => {
     try {
       return await fbSetDoc(docRef, data, options);
     } catch (e) {
-      console.error("fbSetDoc failed, falling back:", e);
+      throw e;
     }
   }
   console.log("Offline Mode: Simulated setDoc for:", docRef?.path, data);
@@ -178,7 +178,7 @@ export const updateDoc = async (docRef: any, data: any) => {
     try {
       return await fbUpdateDoc(docRef, data);
     } catch (e) {
-      console.error("fbUpdateDoc failed, falling back:", e);
+      throw e;
     }
   }
   console.log("Offline Mode: Simulated updateDoc for:", docRef?.path, data);
@@ -190,7 +190,7 @@ export const addDoc = async (collRef: any, data: any) => {
     try {
       return await fbAddDoc(collRef, data);
     } catch (e) {
-      console.error("fbAddDoc failed, falling back:", e);
+      throw e;
     }
   }
   console.log("Offline Mode: Simulated addDoc for:", collRef?.path, data);
@@ -202,7 +202,7 @@ export const deleteDoc = async (docRef: any) => {
     try {
       return await fbDeleteDoc(docRef);
     } catch (e) {
-      console.error("fbDeleteDoc failed, falling back:", e);
+      throw e;
     }
   }
   console.log("Offline Mode: Simulated deleteDoc for:", docRef?.path);

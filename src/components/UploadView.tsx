@@ -1,8 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { UploadCloud, Camera, X, CircleDot, AlertCircle, Loader2 } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
-import { driver } from "driver.js";
-import "driver.js/dist/driver.css";
 
 interface UploadViewProps {
   onUpload: (file: File | null) => void;
@@ -21,39 +19,10 @@ export function UploadView({ onUpload }: UploadViewProps) {
   const [showDisclaimer, setShowDisclaimer] = useState(false);
 
   useEffect(() => {
-    // Show tutorial if this is their first time
-    const tutorialDone = localStorage.getItem('lumina_tutorial_upload_done');
-    if (!tutorialDone) {
-      setTimeout(() => {
-        const driverObj = driver({
-          showProgress: false,
-          allowClose: false,
-          steps: [
-            { 
-              element: '#tutorial-camera-btn', 
-              popover: { 
-                title: language === 'id' ? 'Ambil Gambar' : 'Take a Photo', 
-                description: language === 'id' 
-                  ? 'Mulai dari sini, ambil gambar wajahmu atau unggah dari galeri. Pastikan lepas kacamata terlebih dahulu agar hasilnya presisi.' 
-                  : 'Start here to take a photo or upload from gallery. Please take off your glasses first for precise results.', 
-                side: "bottom", 
-                align: 'start' 
-              } 
-            }
-          ],
-          onDestroyStarted: () => {
-             localStorage.setItem('lumina_tutorial_upload_done', 'true');
-             driverObj.destroy();
-          }
-        });
-        driverObj.drive();
-      }, 500); // Wait for animation to finish
-    }
-
     return () => {
       stopCamera();
     };
-  }, [language]);
+  }, []);
 
   const stopCamera = () => {
     if (stream) {

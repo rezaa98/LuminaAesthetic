@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, Settings, Target, EyeOff, Save, Loader2 } from "lucide-react";
 import { SystemSettings } from "../types";
-import { doc, getDoc, updateDoc, db } from "../firebase";
+import { doc, getDoc, setDoc, db } from "../firebase";
 
 interface GlobalSettingsModalProps {
   onClose: () => void;
@@ -46,9 +46,9 @@ export const GlobalSettingsModal: React.FC<GlobalSettingsModalProps> = ({
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "system_settings", "global"), {
+      await setDoc(doc(db, "system_settings", "global"), {
         ...settings
-      });
+      }, { merge: true });
       onAddAuditLog(
         "UPDATE_GLOBAL_SETTINGS",
         `Memperbarui batas tamu: ${settings.guestDailyLimit}, batas user: ${settings.userDailyLimit}.`
